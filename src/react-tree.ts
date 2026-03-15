@@ -1,9 +1,14 @@
 import { formatReactSymbolLabel, resolveColorSupport } from './color.js'
 import { toDisplayPath } from './path-utils.js'
-import { getFilteredUsages, getReactUsageRoots } from './react-analyzer.js'
+import {
+  getFilteredUsages,
+  getReactUsageEntries,
+  getReactUsageRoots,
+} from './react-analyzer.js'
 import type {
   PrintReactTreeOptions,
   ReactUsageEdge,
+  ReactUsageEntry,
   ReactUsageGraph,
   ReactUsageNode,
 } from './types.js'
@@ -15,8 +20,13 @@ export function printReactUsageTree(
   const cwd = options.cwd ?? graph.cwd
   const color = resolveColorSupport(options.color)
   const filter = options.filter ?? 'all'
-  const roots = getReactUsageRoots(graph, filter)
+  const entries = getReactUsageEntries(graph, filter)
 
+  if (entries.length > 0) {
+    return renderReactUsageEntries(graph, entries, cwd, filter, color)
+  }
+
+  const roots = getReactUsageRoots(graph, filter)
   if (roots.length === 0) {
     return 'No React symbols found.'
   }
@@ -46,6 +56,48 @@ export function printReactUsageTree(
     })
 
     if (index < roots.length - 1) {
+      lines.push('')
+    }
+  })
+
+  return lines.join('\n')
+}
+
+function renderReactUsageEntries(
+  graph: ReactUsageGraph,
+  entries: readonly ReactUsageEntry[],
+  cwd: string,
+  filter: NonNullable<PrintReactTreeOptions['filter']>,
+  color: boolean,
+): string {
+  const lines: string[] = []
+
+  entries.forEach((entry, index) => {
+    const root = graph.nodes.get(entry.target)
+    if (root === undefined) {
+      return
+    }
+
+    lines.push(formatReactEntryLabel(entry, cwd))
+    lines.push(formatReactNodeLabel(root, cwd, color))
+
+    const usages = getFilteredUsages(root, graph, filter)
+    usages.forEach((usage, usageIndex) => {
+      lines.push(
+        ...renderUsage(
+          usage,
+          graph,
+          cwd,
+          filter,
+          color,
+          new Set([root.id]),
+          '',
+          usageIndex === usages.length - 1,
+        ),
+      )
+    })
+
+    if (index < entries.length - 1) {
       lines.push('')
     }
   })
@@ -104,4 +156,8 @@ function formatReactNodeLabel(
   color: boolean,
 ): string {
   return `${formatReactSymbolLabel(node.name, node.kind, color)} (${toDisplayPath(node.filePath, cwd)})`
+}
+
+function formatReactEntryLabel(entry: ReactUsageEntry, cwd: string): string {
+  return `${toDisplayPath(entry.location.filePath, cwd)}:${entry.location.line}:${entry.location.column}`
 }

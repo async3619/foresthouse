@@ -48,9 +48,20 @@ export type ReactUsageFilter = 'all' | ReactSymbolKind
 
 export type ReactUsageEdgeKind = 'render' | 'hook-call'
 
+export interface ReactUsageLocation {
+  readonly filePath: string
+  readonly line: number
+  readonly column: number
+}
+
 export interface ReactUsageEdge {
   readonly kind: ReactUsageEdgeKind
   readonly target: string
+}
+
+export interface ReactUsageEntry {
+  readonly target: string
+  readonly location: ReactUsageLocation
 }
 
 export interface ReactUsageNode {
@@ -66,6 +77,7 @@ export interface ReactUsageGraph {
   readonly cwd: string
   readonly entryId: string
   readonly nodes: ReadonlyMap<string, ReactUsageNode>
+  readonly entries: readonly ReactUsageEntry[]
 }
 
 export interface PrintReactTreeOptions {
