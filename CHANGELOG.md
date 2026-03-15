@@ -1,3 +1,9 @@
+## [1.0.0-dev.5](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.4...v1.0.0-dev.5) (2026-03-15)
+
+### Features
+
+* **react:** show render entry locations ([#18](https://github.com/async3619/foresthouse/issues/18)) ([7ed0633](https://github.com/async3619/foresthouse/commit/7ed06335eb34531a15e25937c610839f37f9f846))
+
 ## [1.0.0-dev.4](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.3...v1.0.0-dev.4) (2026-03-15)
 
 ### Features
