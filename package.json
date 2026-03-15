@@ -1,0 +1,74 @@
+{
+  "name": "foresthouse",
+  "version": "0.1.0",
+  "description": "A Node.js CLI that reads JavaScript and TypeScript entry files and prints an import tree.",
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "bin": {
+    "foresthouse": "./dist/cli.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/async3619/foresthouse.git"
+  },
+  "homepage": "https://github.com/async3619/foresthouse#readme",
+  "bugs": {
+    "url": "https://github.com/async3619/foresthouse/issues"
+  },
+  "engines": {
+    "node": ">=24.14.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsx src/cli.ts",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
+    "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
+    "prepare": "husky",
+    "release": "semantic-release",
+    "release:dry-run": "semantic-release --dry-run"
+  },
+  "keywords": [
+    "cli",
+    "typescript",
+    "dependency-graph",
+    "import-tree",
+    "nodejs"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "5.9.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.7",
+    "@commitlint/cli": "20.4.4",
+    "@commitlint/config-conventional": "20.4.4",
+    "@types/node": "24.6.2",
+    "@semantic-release/changelog": "6.0.3",
+    "@semantic-release/commit-analyzer": "13.0.1",
+    "@semantic-release/git": "10.0.1",
+    "@semantic-release/github": "12.0.6",
+    "@semantic-release/npm": "13.1.5",
+    "@semantic-release/release-notes-generator": "14.1.0",
+    "conventional-changelog-conventionalcommits": "9.3.0",
+    "husky": "9.1.7",
+    "semantic-release": "25.0.3",
+    "tsdown": "0.21.2",
+    "tsx": "4.21.0",
+    "vitest": "4.1.0"
+  }
+}

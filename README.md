@@ -1,0 +1,69 @@
+# foresthouse
+
+`foresthouse` is a modern TypeScript-first Node.js CLI that starts from an entry file, follows local JavaScript and TypeScript imports, and prints the result as a dependency tree.
+
+## Stack
+
+- Node.js 24.14.0 LTS
+- TypeScript 5.9
+- `tsx` for fast TypeScript execution in development
+- `tsdown` for fast ESM builds
+- `Biome` for linting and formatting
+- `Vitest` for tests
+- `semantic-release` for automated pre-releases and releases
+
+## What it does
+
+- Reads a JavaScript/TypeScript entry file (`.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`)
+- Resolves local imports, re-exports, `require()`, and string-literal dynamic `import()`
+- Honors the nearest `tsconfig.json` or `jsconfig.json`, including `baseUrl` and `paths`
+- Prints a tree by default, or JSON with `--json`
+
+## Usage
+
+```bash
+corepack enable
+pnpm install
+pnpm run build
+node dist/cli.mjs src/index.ts
+```
+
+### Example
+
+```bash
+node dist/cli.mjs src/main.ts --cwd test/fixtures/basic
+```
+
+Output:
+
+```text
+src/main.ts
+├─ src/app.tsx
+│  ├─ src/shared/util.ts
+│  └─ src/components/button.tsx
+├─ src/widget-loader.ts
+│  └─ [dynamic] src/widgets/chart.ts
+```
+
+### Options
+
+- `--cwd <path>`: working directory for resolving the entry file and config
+- `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
+- `--include-externals`: include packages and Node built-ins in the output
+- `--json`: print a JSON tree instead of ASCII output
+
+## Development
+
+```bash
+corepack enable
+pnpm install
+pnpm run check
+```
+
+## Collaboration And Release Flow
+
+- `dev` is the pre-release branch and publishes `-dev.N` builds through `semantic-release`
+- `main` is the stable release branch
+- every code change starts from a GitHub issue and lands through a pull request
+- all commits must follow Conventional Commits
+- Biome is the only formatter and linter in this repository
