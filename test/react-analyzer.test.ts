@@ -139,6 +139,25 @@ describe('analyzeReactUsage', () => {
     expect(output).toContain('Panel [component] (src/components/Panel.tsx)')
   })
 
+  it('treats renders inside the entry component file as React entry locations', () => {
+    const graph = analyzeReactUsage('src/entry-page.tsx', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+      filter: 'component',
+    })
+
+    expect(output).toContain('src/entry-page.tsx:7:7')
+    expect(output).toContain('src/entry-page.tsx:8:7')
+    expect(output).toContain('Panel [component] (src/components/Panel.tsx)')
+    expect(output).toContain(
+      'DynamicHost [component] (src/components/DynamicHost.tsx)',
+    )
+    expect(output).not.toContain('EntryPage [component] (src/entry-page.tsx)')
+  })
+
   it('can colorize component and hook labels when requested', () => {
     const graph = analyzeReactUsage('src/main.tsx', {
       cwd: fixtureDirectory,

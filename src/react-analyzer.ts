@@ -131,6 +131,7 @@ export function analyzeReactUsage(
         parseResult.program,
         filePath,
         sourceText,
+        filePath === dependencyGraph.entryId,
         sourceDependencies,
       ),
     )
@@ -345,6 +346,7 @@ function analyzeReactFile(
   program: Program,
   filePath: string,
   sourceText: string,
+  includeNestedRenderEntries: boolean,
   sourceDependencies: ReadonlyMap<string, string>,
 ): FileAnalysis {
   const symbolsByName = new Map<string, PendingReactUsageNode>()
@@ -355,7 +357,12 @@ function analyzeReactFile(
 
   const importsByLocalName = new Map<string, ImportBinding>()
   const exportsByName = new Map<string, string>()
-  const renderEntries = collectRenderEntries(program, filePath, sourceText)
+  const renderEntries = collectRenderEntries(
+    program,
+    filePath,
+    sourceText,
+    includeNestedRenderEntries,
+  )
 
   program.body.forEach((statement) => {
     collectImportsAndExports(
@@ -387,11 +394,18 @@ function collectRenderEntries(
   program: Program,
   filePath: string,
   sourceText: string,
+  includeNestedFunctions: boolean,
 ): PendingReactUsageEntry[] {
   const entries = new Map<string, PendingReactUsageEntry>()
 
   program.body.forEach((statement) => {
-    collectStatementRenderEntries(statement, filePath, sourceText, entries)
+    collectStatementRenderEntries(
+      statement,
+      filePath,
+      sourceText,
+      entries,
+      includeNestedFunctions,
+    )
   })
 
   return [...entries.values()].sort(comparePendingReactUsageEntries)
@@ -402,8 +416,16 @@ function collectStatementRenderEntries(
   filePath: string,
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
+  includeNestedFunctions: boolean,
 ): void {
-  collectNodeRenderEntries(statement, filePath, sourceText, entries, false)
+  collectNodeRenderEntries(
+    statement,
+    filePath,
+    sourceText,
+    entries,
+    false,
+    includeNestedFunctions,
+  )
 }
 
 function collectNodeRenderEntries(
@@ -412,8 +434,9 @@ function collectNodeRenderEntries(
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
   hasComponentAncestor: boolean,
+  includeNestedFunctions: boolean,
 ): void {
-  if (FUNCTION_NODE_TYPES.has(node.type)) {
+  if (!includeNestedFunctions && FUNCTION_NODE_TYPES.has(node.type)) {
     return
   }
 
@@ -458,6 +481,7 @@ function collectNodeRenderEntries(
       sourceText,
       entries,
       nextHasComponentAncestor,
+      includeNestedFunctions,
     )
   })
 }
@@ -468,6 +492,7 @@ function collectRenderEntryChild(
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
   hasComponentAncestor: boolean,
+  includeNestedFunctions: boolean,
 ): void {
   if (Array.isArray(value)) {
     value.forEach((entry) => {
@@ -477,6 +502,7 @@ function collectRenderEntryChild(
         sourceText,
         entries,
         hasComponentAncestor,
+        includeNestedFunctions,
       )
     })
     return
@@ -492,6 +518,7 @@ function collectRenderEntryChild(
     sourceText,
     entries,
     hasComponentAncestor,
+    includeNestedFunctions,
   )
 }
 
