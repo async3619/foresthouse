@@ -19,6 +19,7 @@
 - Resolves local imports, re-exports, `require()`, and string-literal dynamic `import()`
 - Honors the nearest `tsconfig.json` or `jsconfig.json`, including `baseUrl` and `paths`
 - Prints a tree by default, or JSON with `--json`
+- Colorizes ASCII output automatically when the terminal supports ANSI colors
 
 ## Usage
 

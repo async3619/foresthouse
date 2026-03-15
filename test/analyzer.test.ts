@@ -37,7 +37,9 @@ describe('analyzeDependencies', () => {
       cwd: fixtureDirectory,
     })
 
-    const output = printDependencyTree(graph)
+    const output = printDependencyTree(graph, {
+      color: false,
+    })
 
     expect(output).toContain('src/main.ts')
     expect(output).toContain('src/app.tsx')
@@ -53,6 +55,7 @@ describe('analyzeDependencies', () => {
     })
 
     const output = printDependencyTree(graph, {
+      color: false,
       omitUnused: true,
     })
 
@@ -65,6 +68,7 @@ describe('analyzeDependencies', () => {
     })
 
     const treeOutput = printDependencyTree(graph, {
+      color: false,
       includeExternals: true,
     })
     const jsonTree = graphToSerializableTree(graph)
@@ -104,6 +108,20 @@ describe('analyzeDependencies', () => {
     expect(
       findDependencyEdgeByTarget(jsonTree, 'src/unused-helper.ts'),
     ).toBeUndefined()
+  })
+
+  it('can colorize the unused marker when requested', () => {
+    const graph = analyzeDependencies('src/main.ts', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printDependencyTree(graph, {
+      color: true,
+    })
+
+    expect(output).toContain(
+      'src/unused-helper.ts \u001B[38;5;214m(unused)\u001B[0m',
+    )
   })
 })
 

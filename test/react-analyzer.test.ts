@@ -18,7 +18,9 @@ describe('analyzeReactUsage', () => {
       cwd: fixtureDirectory,
     })
 
-    const output = printReactUsageTree(graph)
+    const output = printReactUsageTree(graph, {
+      color: false,
+    })
 
     expect(output).toContain('AppShell [component] (src/AppShell.tsx)')
     expect(output).toContain('Panel [component] (src/components/Panel.tsx)')
@@ -37,9 +39,11 @@ describe('analyzeReactUsage', () => {
     })
 
     const componentOutput = printReactUsageTree(graph, {
+      color: false,
       filter: 'component',
     })
     const hookOutput = printReactUsageTree(graph, {
+      color: false,
       filter: 'hook',
     })
 
@@ -104,5 +108,18 @@ describe('analyzeReactUsage', () => {
         }),
       ]),
     })
+  })
+
+  it('can colorize component and hook labels when requested', () => {
+    const graph = analyzeReactUsage('src/main.tsx', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: true,
+    })
+
+    expect(output).toContain('\u001B[36mAppShell [component]\u001B[0m')
+    expect(output).toContain('\u001B[35museFeature [hook]\u001B[0m')
   })
 })

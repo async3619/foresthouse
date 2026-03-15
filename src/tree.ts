@@ -1,3 +1,4 @@
+import { colorizeUnusedMarker, resolveColorSupport } from './color.js'
 import { toDisplayPath } from './path-utils.js'
 import type {
   DependencyEdge,
@@ -10,6 +11,7 @@ export function printDependencyTree(
   options: PrintTreeOptions = {},
 ): string {
   const cwd = options.cwd ?? graph.cwd
+  const color = resolveColorSupport(options.color)
   const includeExternals = options.includeExternals ?? false
   const omitUnused = options.omitUnused ?? false
   const rootLines = [toDisplayPath(graph.entryId, cwd)]
@@ -36,6 +38,7 @@ export function printDependencyTree(
       isLast,
       includeExternals,
       omitUnused,
+      color,
       cwd,
     )
     rootLines.push(...lines)
@@ -52,10 +55,11 @@ function renderDependency(
   isLast: boolean,
   includeExternals: boolean,
   omitUnused: boolean,
+  color: boolean,
   cwd: string,
 ): string[] {
   const branch = `${prefix}${isLast ? '└─ ' : '├─ '}`
-  const label = formatDependencyLabel(dependency, graph, cwd)
+  const label = formatDependencyLabel(dependency, cwd, color)
 
   if (dependency.kind !== 'source') {
     return [`${branch}${label}`]
@@ -92,6 +96,7 @@ function renderDependency(
         isChildLast,
         includeExternals,
         omitUnused,
+        color,
         cwd,
       ),
     )
@@ -120,8 +125,8 @@ function filterDependencies(
 
 function formatDependencyLabel(
   dependency: DependencyEdge,
-  _graph: DependencyGraph,
   cwd: string,
+  color: boolean,
 ): string {
   const prefixes: string[] = []
   if (dependency.isTypeOnly) {
@@ -141,29 +146,41 @@ function formatDependencyLabel(
   const annotation = prefixes.length > 0 ? `[${prefixes.join(', ')}] ` : ''
 
   if (dependency.kind === 'source') {
-    return withUnusedSuffix(
-      `${annotation}${toDisplayPath(dependency.target, cwd)}`,
-      dependency.unused,
+    return colorizeUnusedMarker(
+      withUnusedSuffix(
+        `${annotation}${toDisplayPath(dependency.target, cwd)}`,
+        dependency.unused,
+      ),
+      color,
     )
   }
 
   if (dependency.kind === 'missing') {
-    return withUnusedSuffix(
-      `${annotation}${dependency.specifier} [missing]`,
-      dependency.unused,
+    return colorizeUnusedMarker(
+      withUnusedSuffix(
+        `${annotation}${dependency.specifier} [missing]`,
+        dependency.unused,
+      ),
+      color,
     )
   }
 
   if (dependency.kind === 'builtin') {
-    return withUnusedSuffix(
-      `${annotation}${dependency.target} [builtin]`,
-      dependency.unused,
+    return colorizeUnusedMarker(
+      withUnusedSuffix(
+        `${annotation}${dependency.target} [builtin]`,
+        dependency.unused,
+      ),
+      color,
     )
   }
 
-  return withUnusedSuffix(
-    `${annotation}${dependency.target} [external]`,
-    dependency.unused,
+  return colorizeUnusedMarker(
+    withUnusedSuffix(
+      `${annotation}${dependency.target} [external]`,
+      dependency.unused,
+    ),
+    color,
   )
 }
 

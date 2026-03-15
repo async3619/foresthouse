@@ -1,3 +1,4 @@
+import { formatReactSymbolLabel, resolveColorSupport } from './color.js'
 import { toDisplayPath } from './path-utils.js'
 import { getFilteredUsages, getReactUsageRoots } from './react-analyzer.js'
 import type {
@@ -12,6 +13,7 @@ export function printReactUsageTree(
   options: PrintReactTreeOptions = {},
 ): string {
   const cwd = options.cwd ?? graph.cwd
+  const color = resolveColorSupport(options.color)
   const filter = options.filter ?? 'all'
   const roots = getReactUsageRoots(graph, filter)
 
@@ -26,7 +28,7 @@ export function printReactUsageTree(
       return
     }
 
-    lines.push(formatReactNodeLabel(root, cwd))
+    lines.push(formatReactNodeLabel(root, cwd, color))
     const usages = getFilteredUsages(root, graph, filter)
     usages.forEach((usage, usageIndex) => {
       lines.push(
@@ -35,6 +37,7 @@ export function printReactUsageTree(
           graph,
           cwd,
           filter,
+          color,
           new Set([root.id]),
           '',
           usageIndex === usages.length - 1,
@@ -55,6 +58,7 @@ function renderUsage(
   graph: ReactUsageGraph,
   cwd: string,
   filter: NonNullable<PrintReactTreeOptions['filter']>,
+  color: boolean,
   visited: ReadonlySet<string>,
   prefix: string,
   isLast: boolean,
@@ -67,10 +71,10 @@ function renderUsage(
   }
 
   if (visited.has(target.id)) {
-    return [`${branch}${formatReactNodeLabel(target, cwd)} (circular)`]
+    return [`${branch}${formatReactNodeLabel(target, cwd, color)} (circular)`]
   }
 
-  const childLines = [`${branch}${formatReactNodeLabel(target, cwd)}`]
+  const childLines = [`${branch}${formatReactNodeLabel(target, cwd, color)}`]
   const nextVisited = new Set(visited)
   nextVisited.add(target.id)
   const nextPrefix = `${prefix}${isLast ? '   ' : '│  '}`
@@ -83,6 +87,7 @@ function renderUsage(
         graph,
         cwd,
         filter,
+        color,
         nextVisited,
         nextPrefix,
         index === childUsages.length - 1,
@@ -93,6 +98,10 @@ function renderUsage(
   return childLines
 }
 
-function formatReactNodeLabel(node: ReactUsageNode, cwd: string): string {
-  return `${node.name} [${node.kind}] (${toDisplayPath(node.filePath, cwd)})`
+function formatReactNodeLabel(
+  node: ReactUsageNode,
+  cwd: string,
+  color: boolean,
+): string {
+  return `${formatReactSymbolLabel(node.name, node.kind, color)} (${toDisplayPath(node.filePath, cwd)})`
 }

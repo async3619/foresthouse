@@ -8,6 +8,7 @@ export { printReactUsageTree } from './react-tree.js'
 export { printDependencyTree } from './tree.js'
 export type {
   AnalyzeOptions,
+  ColorMode,
   DependencyEdge,
   DependencyGraph,
   DependencyKind,
