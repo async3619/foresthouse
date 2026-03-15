@@ -11,6 +11,7 @@
 - `Biome` for linting and formatting
 - `Vitest` for tests
 - `semantic-release` for automated pre-releases and releases
+- npm publishing through `semantic-release` on GitHub Actions
 
 ## What it does
 
@@ -68,3 +69,4 @@ pnpm run check
 - all commits must follow Conventional Commits
 - Biome is the only formatter and linter in this repository
 - CI runs lint, typecheck, build, and release automation
+- npm publishing is configured for GitHub Actions trusted publishing
