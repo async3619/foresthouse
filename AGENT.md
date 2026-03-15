@@ -10,6 +10,7 @@ This repository is GitHub-first. Agents and contributors must follow these rules
 3. Open a pull request for every change. Direct pushes to `dev` and `main` are not allowed.
    Pull request titles must follow the Conventional Commit pattern.
 4. Pull requests for normal work must target `dev`.
+   Pull requests merged into `dev` must always use Squash Merge.
 5. Only the `dev` branch may be merged into `main`, and that PR is the promotion path for official releases.
 
 ## Release model

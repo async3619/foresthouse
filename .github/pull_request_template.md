@@ -11,6 +11,7 @@ Closes #
 - [ ] `pnpm run check`
 - [ ] Commits follow Conventional Commits
 - [ ] Branch name follows `codex/issue-<number>-<slug>`
+- [ ] This PR will be Squash Merged into `dev`
 
 ## Notes
 
