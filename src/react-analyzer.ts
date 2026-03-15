@@ -46,6 +46,7 @@ interface PendingReactUsageNode {
 
 interface PendingReactUsageEntry {
   readonly referenceName: string
+  readonly kind: ReactSymbolKind
   readonly location: ReactUsageLocation
 }
 
@@ -59,7 +60,7 @@ interface FileAnalysis {
   readonly filePath: string
   readonly importsByLocalName: Map<string, ImportBinding>
   readonly exportsByName: Map<string, string>
-  readonly renderEntries: readonly PendingReactUsageEntry[]
+  readonly entryUsages: readonly PendingReactUsageEntry[]
   readonly symbolsById: Map<string, PendingReactUsageNode>
   readonly symbolsByName: Map<string, PendingReactUsageNode>
 }
@@ -220,12 +221,12 @@ export function analyzeReactUsage(
 
   const entriesByKey = new Map<string, ReactUsageEntry>()
   for (const fileAnalysis of fileAnalyses.values()) {
-    for (const entry of fileAnalysis.renderEntries) {
+    for (const entry of fileAnalysis.entryUsages) {
       const targetId = resolveReactReference(
         fileAnalysis,
         fileAnalyses,
         entry.referenceName,
-        'component',
+        entry.kind,
       )
       if (targetId === undefined) {
         continue
@@ -281,10 +282,6 @@ export function getReactUsageEntries(
   graph: ReactUsageGraph,
   filter: ReactUsageFilter = 'all',
 ): ReactUsageEntry[] {
-  if (filter === 'hook') {
-    return []
-  }
-
   return graph.entries.filter((entry) => {
     const targetNode = graph.nodes.get(entry.target)
     return targetNode !== undefined && matchesReactFilter(targetNode, filter)
@@ -357,7 +354,7 @@ function analyzeReactFile(
 
   const importsByLocalName = new Map<string, ImportBinding>()
   const exportsByName = new Map<string, string>()
-  const renderEntries = collectRenderEntries(
+  const entryUsages = collectEntryUsages(
     program,
     filePath,
     sourceText,
@@ -382,7 +379,7 @@ function analyzeReactFile(
     filePath,
     importsByLocalName,
     exportsByName,
-    renderEntries,
+    entryUsages,
     symbolsById: new Map(
       [...symbolsByName.values()].map((symbol) => [symbol.id, symbol]),
     ),
@@ -390,7 +387,7 @@ function analyzeReactFile(
   }
 }
 
-function collectRenderEntries(
+function collectEntryUsages(
   program: Program,
   filePath: string,
   sourceText: string,
@@ -399,7 +396,7 @@ function collectRenderEntries(
   const entries = new Map<string, PendingReactUsageEntry>()
 
   program.body.forEach((statement) => {
-    collectStatementRenderEntries(
+    collectStatementEntryUsages(
       statement,
       filePath,
       sourceText,
@@ -411,14 +408,14 @@ function collectRenderEntries(
   return [...entries.values()].sort(comparePendingReactUsageEntries)
 }
 
-function collectStatementRenderEntries(
+function collectStatementEntryUsages(
   statement: Statement,
   filePath: string,
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
   includeNestedFunctions: boolean,
 ): void {
-  collectNodeRenderEntries(
+  collectNodeEntryUsages(
     statement,
     filePath,
     sourceText,
@@ -428,7 +425,7 @@ function collectStatementRenderEntries(
   )
 }
 
-function collectNodeRenderEntries(
+function collectNodeEntryUsages(
   node: Node,
   filePath: string,
   sourceText: string,
@@ -446,21 +443,33 @@ function collectNodeRenderEntries(
     const referenceName = getComponentReferenceName(node)
     if (referenceName !== undefined) {
       if (!hasComponentAncestor) {
-        addPendingRenderEntry(
+        addPendingReactUsageEntry(
           entries,
           referenceName,
+          'component',
           createReactUsageLocation(filePath, sourceText, node.start),
         )
       }
       nextHasComponentAncestor = true
     }
   } else if (node.type === 'CallExpression') {
+    const hookReference = getHookReferenceName(node)
+    if (hookReference !== undefined) {
+      addPendingReactUsageEntry(
+        entries,
+        hookReference,
+        'hook',
+        createReactUsageLocation(filePath, sourceText, node.start),
+      )
+    }
+
     const referenceName = getCreateElementComponentReferenceName(node)
     if (referenceName !== undefined) {
       if (!hasComponentAncestor) {
-        addPendingRenderEntry(
+        addPendingReactUsageEntry(
           entries,
           referenceName,
+          'component',
           createReactUsageLocation(filePath, sourceText, node.start),
         )
       }
@@ -475,7 +484,7 @@ function collectNodeRenderEntries(
 
   keys.forEach((key) => {
     const value = (node as unknown as Record<string, unknown>)[key]
-    collectRenderEntryChild(
+    collectEntryUsageChild(
       value,
       filePath,
       sourceText,
@@ -486,7 +495,7 @@ function collectNodeRenderEntries(
   })
 }
 
-function collectRenderEntryChild(
+function collectEntryUsageChild(
   value: unknown,
   filePath: string,
   sourceText: string,
@@ -496,7 +505,7 @@ function collectRenderEntryChild(
 ): void {
   if (Array.isArray(value)) {
     value.forEach((entry) => {
-      collectRenderEntryChild(
+      collectEntryUsageChild(
         entry,
         filePath,
         sourceText,
@@ -512,7 +521,7 @@ function collectRenderEntryChild(
     return
   }
 
-  collectNodeRenderEntries(
+  collectNodeEntryUsages(
     value,
     filePath,
     sourceText,
@@ -522,14 +531,16 @@ function collectRenderEntryChild(
   )
 }
 
-function addPendingRenderEntry(
+function addPendingReactUsageEntry(
   entries: Map<string, PendingReactUsageEntry>,
   referenceName: string,
+  kind: ReactSymbolKind,
   location: ReactUsageLocation,
 ): void {
-  const key = `${location.filePath}:${location.line}:${location.column}:${referenceName}`
+  const key = `${location.filePath}:${location.line}:${location.column}:${kind}:${referenceName}`
   entries.set(key, {
     referenceName,
+    kind,
     location,
   })
 }
@@ -1268,6 +1279,7 @@ function comparePendingReactUsageEntries(
     left.location.filePath.localeCompare(right.location.filePath) ||
     left.location.line - right.location.line ||
     left.location.column - right.location.column ||
+    left.kind.localeCompare(right.kind) ||
     left.referenceName.localeCompare(right.referenceName)
   )
 }
