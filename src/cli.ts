@@ -4,7 +4,13 @@ import { createRequire } from 'node:module'
 import process from 'node:process'
 
 import { analyzeDependencies, graphToSerializableTree } from './analyzer.js'
+import {
+  analyzeReactUsage,
+  graphToSerializableReactTree,
+} from './react-analyzer.js'
+import { printReactUsageTree } from './react-tree.js'
 import { printDependencyTree } from './tree.js'
+import type { ReactUsageFilter } from './types.js'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
@@ -15,11 +21,43 @@ interface CliOptions {
   readonly configPath: string | undefined
   readonly includeExternals: boolean
   readonly json: boolean
+  readonly react: ReactUsageFilter | undefined
 }
 
 function main(): void {
   try {
     const options = parseArgs(process.argv.slice(2))
+
+    if (options.react !== undefined) {
+      const graph = analyzeReactUsage(options.entryFile, {
+        ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+        ...(options.configPath === undefined
+          ? {}
+          : { configPath: options.configPath }),
+      })
+
+      if (options.json) {
+        process.stdout.write(
+          `${JSON.stringify(
+            graphToSerializableReactTree(graph, {
+              filter: options.react,
+            }),
+            null,
+            2,
+          )}\n`,
+        )
+        return
+      }
+
+      process.stdout.write(
+        `${printReactUsageTree(graph, {
+          cwd: options.cwd ?? graph.cwd,
+          filter: options.react,
+        })}\n`,
+      )
+      return
+    }
+
     const graph = analyzeDependencies(options.entryFile, {
       ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
       ...(options.configPath === undefined
@@ -64,6 +102,7 @@ function parseArgs(argv: string[]): CliOptions {
   let configPath: string | undefined
   let includeExternals = false
   let json = false
+  let react: ReactUsageFilter | undefined
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index]
@@ -93,6 +132,21 @@ function parseArgs(argv: string[]): CliOptions {
       continue
     }
 
+    if (argument === '--react') {
+      react = 'all'
+      continue
+    }
+
+    if (argument.startsWith('--react=')) {
+      const value = argument.slice('--react='.length)
+      if (value === 'component' || value === 'hook') {
+        react = value
+        continue
+      }
+
+      throw new Error(`Unknown React mode: ${value}`)
+    }
+
     if (argument.startsWith('-')) {
       throw new Error(`Unknown option: ${argument}`)
     }
@@ -114,6 +168,7 @@ function parseArgs(argv: string[]): CliOptions {
     configPath,
     includeExternals,
     json,
+    react,
   }
 }
 
@@ -140,6 +195,7 @@ Options:
   --cwd <path>               Working directory used for relative paths.
   --config <path>            Explicit tsconfig.json or jsconfig.json path.
   --include-externals        Include packages and Node built-ins in the tree.
+  --react[=component|hook]   Print a React usage tree instead of the import tree.
   --json                     Print the dependency tree as JSON.
   -v, --version              Show the current version.
   -h, --help                 Show this help message.
