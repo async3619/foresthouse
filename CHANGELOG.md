@@ -1,3 +1,9 @@
+## [1.0.0-dev.4](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.3...v1.0.0-dev.4) (2026-03-15)
+
+### Features
+
+* **cli:** colorize ASCII tree output ([#17](https://github.com/async3619/foresthouse/issues/17)) ([eeadadd](https://github.com/async3619/foresthouse/commit/eeadaddeb9acd5f6c0ae0a919a5b72c8f7a85b19))
+
 ## [1.0.0-dev.3](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.2...v1.0.0-dev.3) (2026-03-15)
 
 ### Features
