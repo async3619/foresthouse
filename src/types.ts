@@ -37,9 +37,12 @@ export interface PrintTreeOptions {
   readonly cwd?: string
   readonly includeExternals?: boolean
   readonly omitUnused?: boolean
+  readonly color?: ColorMode
 }
 
 export type ReactSymbolKind = 'component' | 'hook'
+
+export type ColorMode = boolean | 'auto'
 
 export type ReactUsageFilter = 'all' | ReactSymbolKind
 
@@ -68,4 +71,5 @@ export interface ReactUsageGraph {
 export interface PrintReactTreeOptions {
   readonly cwd?: string
   readonly filter?: ReactUsageFilter
+  readonly color?: ColorMode
 }
