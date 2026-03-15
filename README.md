@@ -67,3 +67,4 @@ pnpm run check
 - every code change starts from a GitHub issue and lands through a pull request
 - all commits must follow Conventional Commits
 - Biome is the only formatter and linter in this repository
+- CI runs lint, typecheck, build, and release automation

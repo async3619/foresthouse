@@ -5,8 +5,10 @@ This repository is GitHub-first. Agents and contributors must follow these rules
 ## Workflow
 
 1. Start with a GitHub issue. If no issue exists yet, create one before making code changes.
+   Issue titles must be written in natural language, not in Conventional Commit format.
 2. Create a working branch from `dev`. Branch names must follow `codex/issue-<number>-<slug>`.
 3. Open a pull request for every change. Direct pushes to `dev` and `main` are not allowed.
+   Pull request titles must follow the Conventional Commit pattern.
 4. Pull requests for normal work must target `dev`.
 5. Only the `dev` branch may be merged into `main`, and that PR is the promotion path for official releases.
 
