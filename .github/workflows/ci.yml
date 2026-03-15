@@ -15,8 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  # semantic-release needs these to create GitHub releases and comment on linked issues/PRs
   contents: write
   issues: write
+  # npm provenance on GitHub Actions requires OIDC even when authentication uses NPM_TOKEN
   id-token: write
   pull-requests: write
 
@@ -52,6 +54,7 @@ jobs:
       - name: Release
         if: github.event_name == 'push'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           HUSKY: 0
         run: pnpm run release

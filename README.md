@@ -69,4 +69,4 @@ pnpm run check
 - all commits must follow Conventional Commits
 - Biome is the only formatter and linter in this repository
 - CI runs lint, typecheck, build, and release automation
-- npm publishing is configured for GitHub Actions trusted publishing
+- npm publishing is configured through `semantic-release` with `NPM_TOKEN` and GitHub Actions provenance
