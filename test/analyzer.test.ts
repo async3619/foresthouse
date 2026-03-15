@@ -27,9 +27,12 @@ describe('analyzeDependencies', () => {
     expect(
       graph.nodes.has(path.join(fixtureDirectory, 'src', 'shared', 'util.ts')),
     ).toBe(true)
+    expect(
+      graph.nodes.has(path.join(fixtureDirectory, 'src', 'unused-helper.ts')),
+    ).toBe(true)
   })
 
-  it('prints a readable tree and hides externals by default', () => {
+  it('prints a readable tree, marks unused imports, and hides externals by default', () => {
     const graph = analyzeDependencies('src/main.ts', {
       cwd: fixtureDirectory,
     })
@@ -39,8 +42,21 @@ describe('analyzeDependencies', () => {
     expect(output).toContain('src/main.ts')
     expect(output).toContain('src/app.tsx')
     expect(output).toContain('src/components/button.tsx')
+    expect(output).toContain('src/unused-helper.ts (unused)')
     expect(output).not.toContain('typescript [external]')
     expect(output).not.toContain('node:path [builtin]')
+  })
+
+  it('can omit unused dependencies from the tree output', () => {
+    const graph = analyzeDependencies('src/main.ts', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printDependencyTree(graph, {
+      omitUnused: true,
+    })
+
+    expect(output).not.toContain('src/unused-helper.ts')
   })
 
   it('can expose externals and json output when requested', () => {
@@ -59,5 +75,94 @@ describe('analyzeDependencies', () => {
       kind: 'entry',
       path: 'src/main.ts',
     })
+    expect(
+      findDependencyByPath(jsonTree, 'src/unused-helper.ts'),
+    ).toMatchObject({
+      kind: 'source',
+      path: 'src/unused-helper.ts',
+    })
+    expect(
+      findDependencyEdgeByTarget(jsonTree, 'src/unused-helper.ts'),
+    ).toMatchObject({
+      target: 'src/unused-helper.ts',
+      unused: true,
+    })
+  })
+
+  it('can omit unused dependencies from json output', () => {
+    const graph = analyzeDependencies('src/main.ts', {
+      cwd: fixtureDirectory,
+    })
+
+    const jsonTree = graphToSerializableTree(graph, {
+      omitUnused: true,
+    })
+
+    expect(
+      findDependencyByPath(jsonTree, 'src/unused-helper.ts'),
+    ).toBeUndefined()
+    expect(
+      findDependencyEdgeByTarget(jsonTree, 'src/unused-helper.ts'),
+    ).toBeUndefined()
   })
 })
+
+function findDependencyByPath(
+  tree: object,
+  targetPath: string,
+): Record<string, unknown> | undefined {
+  if (!isRecord(tree)) {
+    return undefined
+  }
+
+  if (tree.path === targetPath) {
+    return tree
+  }
+
+  const dependencies = Array.isArray(tree.dependencies) ? tree.dependencies : []
+  for (const dependency of dependencies) {
+    if (!isRecord(dependency) || !isRecord(dependency.node)) {
+      continue
+    }
+
+    const match = findDependencyByPath(dependency.node, targetPath)
+    if (match !== undefined) {
+      return match
+    }
+  }
+
+  return undefined
+}
+
+function findDependencyEdgeByTarget(
+  tree: object,
+  targetPath: string,
+): Record<string, unknown> | undefined {
+  if (!isRecord(tree)) {
+    return undefined
+  }
+
+  const dependencies = Array.isArray(tree.dependencies) ? tree.dependencies : []
+  for (const dependency of dependencies) {
+    if (!isRecord(dependency)) {
+      continue
+    }
+
+    if (dependency.target === targetPath) {
+      return dependency
+    }
+
+    if (isRecord(dependency.node)) {
+      const match = findDependencyEdgeByTarget(dependency.node, targetPath)
+      if (match !== undefined) {
+        return match
+      }
+    }
+  }
+
+  return undefined
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}

@@ -11,6 +11,7 @@ export interface DependencyEdge {
   readonly specifier: string
   readonly referenceKind: ReferenceKind
   readonly isTypeOnly: boolean
+  readonly unused: boolean
   readonly kind: DependencyKind
   readonly target: string
 }
@@ -35,6 +36,7 @@ export interface AnalyzeOptions {
 export interface PrintTreeOptions {
   readonly cwd?: string
   readonly includeExternals?: boolean
+  readonly omitUnused?: boolean
 }
 
 export type ReactSymbolKind = 'component' | 'hook'

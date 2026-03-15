@@ -22,6 +22,7 @@ interface ModuleReference {
   readonly specifier: string
   readonly referenceKind: ReferenceKind
   readonly isTypeOnly: boolean
+  readonly unused: boolean
 }
 
 const BUILTIN_MODULES = new Set(
@@ -49,7 +50,9 @@ export function analyzeDependencies(
   }
 
   const nodes = new Map<string, SourceModuleNode>()
-  visitFile(resolvedEntryPath, compilerOptions, host, nodes)
+  const program = createProgram(resolvedEntryPath, compilerOptions, cwd)
+  const checker = program.getTypeChecker()
+  visitFile(resolvedEntryPath, compilerOptions, host, checker, program, nodes)
 
   return {
     cwd,
@@ -59,15 +62,26 @@ export function analyzeDependencies(
   }
 }
 
-export function graphToSerializableTree(graph: DependencyGraph): object {
+export function graphToSerializableTree(
+  graph: DependencyGraph,
+  options: {
+    readonly omitUnused?: boolean
+  } = {},
+): object {
   const visited = new Set<string>()
-  return serializeNode(graph.entryId, graph, visited)
+  return serializeNode(
+    graph.entryId,
+    graph,
+    visited,
+    options.omitUnused ?? false,
+  )
 }
 
 function serializeNode(
   filePath: string,
   graph: DependencyGraph,
   visited: Set<string>,
+  omitUnused: boolean,
 ): object {
   const node = graph.nodes.get(filePath)
   const displayPath = toDisplayPath(filePath, graph.cwd)
@@ -90,29 +104,38 @@ function serializeNode(
 
   visited.add(filePath)
 
-  const dependencies = node.dependencies.map((dependency) => {
-    if (dependency.kind !== 'source') {
+  const dependencies = node.dependencies
+    .filter((dependency) => !omitUnused || !dependency.unused)
+    .map((dependency) => {
+      if (dependency.kind !== 'source') {
+        return {
+          specifier: dependency.specifier,
+          referenceKind: dependency.referenceKind,
+          isTypeOnly: dependency.isTypeOnly,
+          unused: dependency.unused,
+          kind: dependency.kind,
+          target:
+            dependency.kind === 'missing'
+              ? dependency.target
+              : toDisplayPath(dependency.target, graph.cwd),
+        }
+      }
+
       return {
         specifier: dependency.specifier,
         referenceKind: dependency.referenceKind,
         isTypeOnly: dependency.isTypeOnly,
+        unused: dependency.unused,
         kind: dependency.kind,
-        target:
-          dependency.kind === 'missing'
-            ? dependency.target
-            : toDisplayPath(dependency.target, graph.cwd),
+        target: toDisplayPath(dependency.target, graph.cwd),
+        node: serializeNode(
+          dependency.target,
+          graph,
+          new Set(visited),
+          omitUnused,
+        ),
       }
-    }
-
-    return {
-      specifier: dependency.specifier,
-      referenceKind: dependency.referenceKind,
-      isTypeOnly: dependency.isTypeOnly,
-      kind: dependency.kind,
-      target: toDisplayPath(dependency.target, graph.cwd),
-      node: serializeNode(dependency.target, graph, new Set(visited)),
-    }
-  })
+    })
 
   return {
     path: displayPath,
@@ -125,6 +148,8 @@ function visitFile(
   filePath: string,
   compilerOptions: ts.CompilerOptions,
   host: ts.ModuleResolutionHost,
+  checker: ts.TypeChecker,
+  program: ts.Program,
   nodes: Map<string, SourceModuleNode>,
 ): void {
   const normalizedPath = normalizeFilePath(filePath)
@@ -132,16 +157,10 @@ function visitFile(
     return
   }
 
-  const sourceText = fs.readFileSync(normalizedPath, 'utf8')
-  const sourceFile = ts.createSourceFile(
-    normalizedPath,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-    getScriptKind(normalizedPath),
-  )
+  const sourceFile =
+    program.getSourceFile(normalizedPath) ?? createSourceFile(normalizedPath)
 
-  const references = collectModuleReferences(sourceFile)
+  const references = collectModuleReferences(sourceFile, checker)
   const dependencies = references.map((reference) =>
     resolveDependency(reference, normalizedPath, compilerOptions, host),
   )
@@ -153,30 +172,48 @@ function visitFile(
 
   for (const dependency of dependencies) {
     if (dependency.kind === 'source') {
-      visitFile(dependency.target, compilerOptions, host, nodes)
+      visitFile(
+        dependency.target,
+        compilerOptions,
+        host,
+        checker,
+        program,
+        nodes,
+      )
     }
   }
 }
 
-function collectModuleReferences(sourceFile: ts.SourceFile): ModuleReference[] {
-  const references: ModuleReference[] = []
-  const seen = new Set<string>()
+function collectModuleReferences(
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker,
+): ModuleReference[] {
+  const references = new Map<string, ModuleReference>()
+  const unusedImports = collectUnusedImports(sourceFile, checker)
 
   function addReference(
     specifier: string,
     referenceKind: ReferenceKind,
     isTypeOnly: boolean,
+    unused: boolean,
   ): void {
     const key = `${referenceKind}:${isTypeOnly ? 'type' : 'value'}:${specifier}`
-    if (seen.has(key)) {
+    const existing = references.get(key)
+    if (existing !== undefined) {
+      if (existing.unused && !unused) {
+        references.set(key, {
+          ...existing,
+          unused: false,
+        })
+      }
       return
     }
 
-    seen.add(key)
-    references.push({
+    references.set(key, {
       specifier,
       referenceKind,
       isTypeOnly,
+      unused,
     })
   }
 
@@ -189,6 +226,7 @@ function collectModuleReferences(sourceFile: ts.SourceFile): ModuleReference[] {
         node.moduleSpecifier.text,
         'import',
         node.importClause?.isTypeOnly ?? false,
+        unusedImports.get(node) ?? false,
       )
     } else if (
       ts.isExportDeclaration(node) &&
@@ -199,6 +237,7 @@ function collectModuleReferences(sourceFile: ts.SourceFile): ModuleReference[] {
         node.moduleSpecifier.text,
         'export',
         node.isTypeOnly ?? false,
+        false,
       )
     } else if (ts.isImportEqualsDeclaration(node)) {
       const moduleReference = node.moduleReference
@@ -207,7 +246,12 @@ function collectModuleReferences(sourceFile: ts.SourceFile): ModuleReference[] {
         moduleReference.expression !== undefined &&
         ts.isStringLiteralLike(moduleReference.expression)
       ) {
-        addReference(moduleReference.expression.text, 'import-equals', false)
+        addReference(
+          moduleReference.expression.text,
+          'import-equals',
+          false,
+          false,
+        )
       }
     } else if (ts.isCallExpression(node)) {
       if (
@@ -216,7 +260,7 @@ function collectModuleReferences(sourceFile: ts.SourceFile): ModuleReference[] {
       ) {
         const [argument] = node.arguments
         if (argument !== undefined && ts.isStringLiteralLike(argument)) {
-          addReference(argument.text, 'dynamic-import', false)
+          addReference(argument.text, 'dynamic-import', false, false)
         }
       }
 
@@ -227,7 +271,7 @@ function collectModuleReferences(sourceFile: ts.SourceFile): ModuleReference[] {
       ) {
         const [argument] = node.arguments
         if (argument !== undefined && ts.isStringLiteralLike(argument)) {
-          addReference(argument.text, 'require', false)
+          addReference(argument.text, 'require', false, false)
         }
       }
     }
@@ -236,7 +280,7 @@ function collectModuleReferences(sourceFile: ts.SourceFile): ModuleReference[] {
   }
 
   visit(sourceFile)
-  return references
+  return [...references.values()]
 }
 
 function resolveDependency(
@@ -287,8 +331,188 @@ function createEdge(
     specifier: reference.specifier,
     referenceKind: reference.referenceKind,
     isTypeOnly: reference.isTypeOnly,
+    unused: reference.unused,
     kind,
     target,
+  }
+}
+
+function createProgram(
+  entryFile: string,
+  compilerOptions: ts.CompilerOptions,
+  cwd: string,
+): ts.Program {
+  const host = ts.createCompilerHost(compilerOptions, true)
+  host.getCurrentDirectory = () => cwd
+
+  if (ts.sys.realpath !== undefined) {
+    host.realpath = ts.sys.realpath
+  }
+
+  return ts.createProgram({
+    rootNames: [entryFile],
+    options: compilerOptions,
+    host,
+  })
+}
+
+function createSourceFile(filePath: string): ts.SourceFile {
+  const sourceText = fs.readFileSync(filePath, 'utf8')
+  return ts.createSourceFile(
+    filePath,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    getScriptKind(filePath),
+  )
+}
+
+function collectUnusedImports(
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker,
+): ReadonlyMap<ts.ImportDeclaration, boolean> {
+  const importUsage = new Map<
+    ts.ImportDeclaration,
+    {
+      canTrack: boolean
+      used: boolean
+    }
+  >()
+  const symbolToImportDeclaration = new Map<ts.Symbol, ts.ImportDeclaration>()
+  const importedLocalNames = new Set<string>()
+
+  sourceFile.statements.forEach((statement) => {
+    if (
+      !ts.isImportDeclaration(statement) ||
+      statement.importClause === undefined
+    ) {
+      return
+    }
+
+    const identifiers = getImportBindingIdentifiers(statement.importClause)
+    if (identifiers.length === 0) {
+      return
+    }
+
+    importUsage.set(statement, {
+      canTrack: false,
+      used: false,
+    })
+
+    identifiers.forEach((identifier) => {
+      importedLocalNames.add(identifier.text)
+
+      const symbol = tryGetSymbolAtLocation(checker, identifier)
+      if (symbol === undefined) {
+        return
+      }
+
+      symbolToImportDeclaration.set(symbol, statement)
+      const state = importUsage.get(statement)
+      if (state !== undefined) {
+        state.canTrack = true
+      }
+    })
+  })
+
+  function visit(node: ts.Node): void {
+    if (ts.isImportDeclaration(node)) {
+      return
+    }
+
+    if (
+      ts.isIdentifier(node) &&
+      importedLocalNames.has(node.text) &&
+      isReferenceIdentifier(node)
+    ) {
+      const symbol = tryGetSymbolAtLocation(checker, node)
+      const declaration =
+        symbol === undefined ? undefined : symbolToImportDeclaration.get(symbol)
+      if (declaration !== undefined) {
+        const state = importUsage.get(declaration)
+        if (state !== undefined) {
+          state.used = true
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit)
+  }
+
+  visit(sourceFile)
+
+  return new Map(
+    [...importUsage.entries()].map(([declaration, state]) => [
+      declaration,
+      state.canTrack && !state.used,
+    ]),
+  )
+}
+
+function getImportBindingIdentifiers(
+  importClause: ts.ImportClause,
+): ts.Identifier[] {
+  const identifiers: ts.Identifier[] = []
+
+  if (importClause.name !== undefined) {
+    identifiers.push(importClause.name)
+  }
+
+  const namedBindings = importClause.namedBindings
+  if (namedBindings === undefined) {
+    return identifiers
+  }
+
+  if (ts.isNamespaceImport(namedBindings)) {
+    identifiers.push(namedBindings.name)
+    return identifiers
+  }
+
+  namedBindings.elements.forEach((element) => {
+    identifiers.push(element.name)
+  })
+
+  return identifiers
+}
+
+function isReferenceIdentifier(node: ts.Identifier): boolean {
+  const parent = node.parent
+
+  if (ts.isPropertyAccessExpression(parent) && parent.name === node) {
+    return false
+  }
+
+  if (ts.isQualifiedName(parent) && parent.right === node) {
+    return false
+  }
+
+  if (ts.isPropertyAssignment(parent) && parent.name === node) {
+    return false
+  }
+
+  if (ts.isBindingElement(parent) && parent.propertyName === node) {
+    return false
+  }
+
+  if (ts.isJsxAttribute(parent) && parent.name === node) {
+    return false
+  }
+
+  if (ts.isExportSpecifier(parent)) {
+    return parent.propertyName === node || parent.propertyName === undefined
+  }
+
+  return true
+}
+
+function tryGetSymbolAtLocation(
+  checker: ts.TypeChecker,
+  node: ts.Node,
+): ts.Symbol | undefined {
+  try {
+    return checker.getSymbolAtLocation(node)
+  } catch {
+    return undefined
   }
 }
 
