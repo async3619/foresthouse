@@ -158,6 +158,57 @@ describe('analyzeReactUsage', () => {
     expect(output).not.toContain('EntryPage [component] (src/entry-page.tsx)')
   })
 
+  it('treats hook calls inside the entry component file as React entry locations', () => {
+    const graph = analyzeReactUsage('src/entry-hook-page.tsx', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+      filter: 'hook',
+    })
+
+    expect(output).toContain('src/entry-hook-page.tsx:7:3')
+    expect(output).toContain('src/entry-hook-page.tsx:8:3')
+    expect(output).toContain('useEffect [hook] (react)')
+    expect(output).toContain('useFeature [hook] (src/hooks/useFeature.ts)')
+    expect(output).not.toContain('Panel [component] (src/components/Panel.tsx)')
+  })
+
+  it('returns JSON entries for hook usages inside the entry component file', () => {
+    const graph = analyzeReactUsage('src/entry-hook-page.tsx', {
+      cwd: fixtureDirectory,
+    })
+
+    const jsonTree = graphToSerializableReactTree(graph, {
+      filter: 'hook',
+    })
+
+    expect(jsonTree).toMatchObject({
+      kind: 'react-usage',
+      entries: expect.arrayContaining([
+        expect.objectContaining({
+          filePath: 'src/entry-hook-page.tsx',
+          line: 7,
+          column: 3,
+          node: expect.objectContaining({
+            name: 'useEffect',
+            symbolKind: 'hook',
+          }),
+        }),
+        expect.objectContaining({
+          filePath: 'src/entry-hook-page.tsx',
+          line: 8,
+          column: 3,
+          node: expect.objectContaining({
+            name: 'useFeature',
+            symbolKind: 'hook',
+          }),
+        }),
+      ]),
+    })
+  })
+
   it('can colorize component and hook labels when requested', () => {
     const graph = analyzeReactUsage('src/main.tsx', {
       cwd: fixtureDirectory,
