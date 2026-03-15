@@ -1,3 +1,9 @@
+## [1.0.0-dev.3](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.2...v1.0.0-dev.3) (2026-03-15)
+
+### Features
+
+* support unused import filtering ([#15](https://github.com/async3619/foresthouse/issues/15)) ([e01f72b](https://github.com/async3619/foresthouse/commit/e01f72b7c1b0220b0dbf453cbf5aee98aede0b91))
+
 ## [1.0.0-dev.2](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.1...v1.0.0-dev.2) (2026-03-15)
 
 ### Features
