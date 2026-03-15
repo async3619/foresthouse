@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@10.32.1",
   "bin": {
-    "foresthouse": "./dist/cli.mjs"
+    "foresthouse": "dist/cli.mjs"
   },
   "exports": {
     ".": {
@@ -19,13 +19,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/async3619/foresthouse.git"
+    "url": "git+https://github.com/async3619/foresthouse.git"
   },
   "homepage": "https://github.com/async3619/foresthouse#readme",
   "bugs": {
     "url": "https://github.com/async3619/foresthouse/issues"
   },
   "publishConfig": {
+    "access": "public",
     "registry": "https://registry.npmjs.org/",
     "provenance": true
   },
