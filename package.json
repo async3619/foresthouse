@@ -57,19 +57,20 @@
   "author": "Sophia (Turner) <me@sophia-dev.io>",
   "license": "MIT",
   "dependencies": {
+    "oxc-parser": "0.119.0",
     "typescript": "5.9.3"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.7",
     "@commitlint/cli": "20.4.4",
     "@commitlint/config-conventional": "20.4.4",
-    "@types/node": "24.6.2",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/commit-analyzer": "13.0.1",
     "@semantic-release/git": "10.0.1",
     "@semantic-release/github": "12.0.6",
     "@semantic-release/npm": "13.1.5",
     "@semantic-release/release-notes-generator": "14.1.0",
+    "@types/node": "24.6.2",
     "conventional-changelog-conventionalcommits": "9.3.0",
     "husky": "9.1.7",
     "semantic-release": "25.0.3",
