@@ -1,3 +1,9 @@
+## [1.0.0-dev.7](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.6...v1.0.0-dev.7) (2026-03-15)
+
+### Bug Fixes
+
+* **react:** record entry file hook usages ([#24](https://github.com/async3619/foresthouse/issues/24)) ([36060c6](https://github.com/async3619/foresthouse/commit/36060c64248e28712f51d469fb0bb34cc8edca3c))
+
 ## [1.0.0-dev.6](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.5...v1.0.0-dev.6) (2026-03-15)
 
 ### Bug Fixes
