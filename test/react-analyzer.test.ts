@@ -22,6 +22,7 @@ describe('analyzeReactUsage', () => {
       color: false,
     })
 
+    expect(output).toContain('src/main.tsx:3:7')
     expect(output).toContain('AppShell [component] (src/AppShell.tsx)')
     expect(output).toContain('Panel [component] (src/components/Panel.tsx)')
     expect(output).toContain('Button [component] (src/components/Button.tsx)')
@@ -47,12 +48,14 @@ describe('analyzeReactUsage', () => {
       filter: 'hook',
     })
 
+    expect(componentOutput).toContain('src/main.tsx:3:7')
     expect(componentOutput).toContain('AppShell [component] (src/AppShell.tsx)')
     expect(componentOutput).toContain(
       'Panel [component] (src/components/Panel.tsx)',
     )
     expect(componentOutput).not.toContain('useFeature [hook]')
 
+    expect(hookOutput).not.toContain('src/main.tsx:3:7')
     expect(hookOutput).toContain('useEffect [hook] (react)')
     expect(hookOutput).toContain('useFeature [hook] (src/hooks/useFeature.ts)')
     expect(hookOutput).toContain(
@@ -61,7 +64,7 @@ describe('analyzeReactUsage', () => {
     expect(hookOutput).not.toContain('AppShell [component]')
   })
 
-  it('returns JSON with symbol metadata and nested usages', () => {
+  it('returns JSON with entry metadata and nested usages', () => {
     const graph = analyzeReactUsage('src/main.tsx', {
       cwd: fixtureDirectory,
     })
@@ -70,6 +73,17 @@ describe('analyzeReactUsage', () => {
 
     expect(jsonTree).toMatchObject({
       kind: 'react-usage',
+      entries: expect.arrayContaining([
+        expect.objectContaining({
+          filePath: 'src/main.tsx',
+          line: 3,
+          column: 7,
+          node: expect.objectContaining({
+            name: 'AppShell',
+            symbolKind: 'component',
+          }),
+        }),
+      ]),
       roots: expect.arrayContaining([
         expect.objectContaining({
           name: 'AppShell',
@@ -108,6 +122,21 @@ describe('analyzeReactUsage', () => {
         }),
       ]),
     })
+  })
+
+  it('prints multiple React entry locations when the entry file renders more than one root', () => {
+    const graph = analyzeReactUsage('src/multi-entry.tsx', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      filter: 'component',
+    })
+
+    expect(output).toContain('src/multi-entry.tsx:4:7')
+    expect(output).toContain('src/multi-entry.tsx:5:7')
+    expect(output).toContain('AppShell [component] (src/AppShell.tsx)')
+    expect(output).toContain('Panel [component] (src/components/Panel.tsx)')
   })
 
   it('can colorize component and hook labels when requested', () => {
