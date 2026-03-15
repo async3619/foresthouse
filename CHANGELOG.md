@@ -1,3 +1,9 @@
+## [1.0.0-dev.6](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.5...v1.0.0-dev.6) (2026-03-15)
+
+### Bug Fixes
+
+* **react:** record entry file render locations ([#23](https://github.com/async3619/foresthouse/issues/23)) ([60d4306](https://github.com/async3619/foresthouse/commit/60d430643a98b37258f0a08ce5f9636ba912e73c))
+
 ## [1.0.0-dev.5](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.4...v1.0.0-dev.5) (2026-03-15)
 
 ### Features
