@@ -11,6 +11,7 @@ export function printDependencyTree(
 ): string {
   const cwd = options.cwd ?? graph.cwd
   const includeExternals = options.includeExternals ?? false
+  const omitUnused = options.omitUnused ?? false
   const rootLines = [toDisplayPath(graph.entryId, cwd)]
   const visited = new Set<string>([graph.entryId])
   const entryNode = graph.nodes.get(graph.entryId)
@@ -22,6 +23,7 @@ export function printDependencyTree(
   const rootDependencies = filterDependencies(
     entryNode.dependencies,
     includeExternals,
+    omitUnused,
   )
 
   rootDependencies.forEach((dependency, index) => {
@@ -33,6 +35,7 @@ export function printDependencyTree(
       '',
       isLast,
       includeExternals,
+      omitUnused,
       cwd,
     )
     rootLines.push(...lines)
@@ -48,6 +51,7 @@ function renderDependency(
   prefix: string,
   isLast: boolean,
   includeExternals: boolean,
+  omitUnused: boolean,
   cwd: string,
 ): string[] {
   const branch = `${prefix}${isLast ? '└─ ' : '├─ '}`
@@ -74,6 +78,7 @@ function renderDependency(
   const childDependencies = filterDependencies(
     childNode.dependencies,
     includeExternals,
+    omitUnused,
   )
 
   childDependencies.forEach((childDependency, index) => {
@@ -86,6 +91,7 @@ function renderDependency(
         nextPrefix,
         isChildLast,
         includeExternals,
+        omitUnused,
         cwd,
       ),
     )
@@ -97,8 +103,13 @@ function renderDependency(
 function filterDependencies(
   dependencies: readonly DependencyEdge[],
   includeExternals: boolean,
+  omitUnused: boolean,
 ): DependencyEdge[] {
   return dependencies.filter((dependency) => {
+    if (omitUnused && dependency.unused) {
+      return false
+    }
+
     if (dependency.kind === 'source' || dependency.kind === 'missing') {
       return true
     }
@@ -130,16 +141,32 @@ function formatDependencyLabel(
   const annotation = prefixes.length > 0 ? `[${prefixes.join(', ')}] ` : ''
 
   if (dependency.kind === 'source') {
-    return `${annotation}${toDisplayPath(dependency.target, cwd)}`
+    return withUnusedSuffix(
+      `${annotation}${toDisplayPath(dependency.target, cwd)}`,
+      dependency.unused,
+    )
   }
 
   if (dependency.kind === 'missing') {
-    return `${annotation}${dependency.specifier} [missing]`
+    return withUnusedSuffix(
+      `${annotation}${dependency.specifier} [missing]`,
+      dependency.unused,
+    )
   }
 
   if (dependency.kind === 'builtin') {
-    return `${annotation}${dependency.target} [builtin]`
+    return withUnusedSuffix(
+      `${annotation}${dependency.target} [builtin]`,
+      dependency.unused,
+    )
   }
 
-  return `${annotation}${dependency.target} [external]`
+  return withUnusedSuffix(
+    `${annotation}${dependency.target} [external]`,
+    dependency.unused,
+  )
+}
+
+function withUnusedSuffix(label: string, unused: boolean): string {
+  return unused ? `${label} (unused)` : label
 }
