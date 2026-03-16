@@ -119,6 +119,7 @@ export function compareReactUsageEntries(
     left.location.filePath.localeCompare(right.location.filePath) ||
     left.location.line - right.location.line ||
     left.location.column - right.location.column ||
+    left.referenceName.localeCompare(right.referenceName) ||
     compareReactNodeIds(left.target, right.target, nodes)
   )
 }

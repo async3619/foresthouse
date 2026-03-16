@@ -24,12 +24,16 @@ describe('analyzeReactUsage', () => {
 
     expect(output).toContain('src/main.tsx:3:7')
     expect(output).toContain('AppShell [component] (src/AppShell.tsx)')
-    expect(output).toContain('Panel [component] (src/components/Panel.tsx)')
-    expect(output).toContain('Button [component] (src/components/Button.tsx)')
+    expect(output).toContain(
+      'Panel as PrimaryPanel [component] (src/components/Panel.tsx)',
+    )
+    expect(output).toContain(
+      'Button as PrimaryButton [component] (src/components/Button.tsx)',
+    )
     expect(output).toContain('useEffect [hook] (react)')
     expect(output).toContain('useFeature [hook] (src/hooks/useFeature.ts)')
     expect(output).toContain(
-      'usePanelState [hook] (src/hooks/usePanelState.ts)',
+      'usePanelState as usePanelStateAlias [hook] (src/hooks/usePanelState.ts)',
     )
     expect(output).not.toContain('Current [component]')
   })
@@ -51,7 +55,7 @@ describe('analyzeReactUsage', () => {
     expect(componentOutput).toContain('src/main.tsx:3:7')
     expect(componentOutput).toContain('AppShell [component] (src/AppShell.tsx)')
     expect(componentOutput).toContain(
-      'Panel [component] (src/components/Panel.tsx)',
+      'Panel as PrimaryPanel [component] (src/components/Panel.tsx)',
     )
     expect(componentOutput).not.toContain('useFeature [hook]')
 
@@ -59,7 +63,7 @@ describe('analyzeReactUsage', () => {
     expect(hookOutput).toContain('useEffect [hook] (react)')
     expect(hookOutput).toContain('useFeature [hook] (src/hooks/useFeature.ts)')
     expect(hookOutput).toContain(
-      'usePanelState [hook] (src/hooks/usePanelState.ts)',
+      'usePanelState as usePanelStateAlias [hook] (src/hooks/usePanelState.ts)',
     )
     expect(hookOutput).not.toContain('AppShell [component]')
   })
@@ -99,6 +103,7 @@ describe('analyzeReactUsage', () => {
             }),
             expect.objectContaining({
               kind: 'render',
+              referenceName: 'PrimaryPanel',
               node: expect.objectContaining({
                 name: 'Panel',
                 symbolKind: 'component',
@@ -113,6 +118,7 @@ describe('analyzeReactUsage', () => {
             }),
             expect.objectContaining({
               kind: 'hook-call',
+              referenceName: 'useFeature',
               node: expect.objectContaining({
                 name: 'useFeature',
                 symbolKind: 'hook',
@@ -220,5 +226,78 @@ describe('analyzeReactUsage', () => {
 
     expect(output).toContain('\u001B[36mAppShell [component]\u001B[0m')
     expect(output).toContain('\u001B[35museFeature [hook]\u001B[0m')
+    expect(output).toContain(
+      '\u001B[36mPanel\u001B[0m \u001B[38;5;244mas PrimaryPanel\u001B[0m \u001B[36m[component]\u001B[0m',
+    )
+  })
+
+  it('shows aliased component names in tree and JSON output', () => {
+    const graph = analyzeReactUsage('src/aliased-entry.tsx', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+      filter: 'component',
+    })
+    const jsonTree = graphToSerializableReactTree(graph, {
+      filter: 'component',
+    })
+
+    expect(output).toContain('src/aliased-entry.tsx:4:10')
+    expect(output).toContain(
+      'OriginalButton as AliasButton [component] (src/components/AliasedButton.tsx)',
+    )
+    expect(jsonTree).toMatchObject({
+      entries: [
+        expect.objectContaining({
+          referenceName: 'AliasButton',
+          node: expect.objectContaining({
+            name: 'OriginalButton',
+            symbolKind: 'component',
+          }),
+        }),
+      ],
+      roots: [
+        expect.objectContaining({
+          name: 'OriginalButton',
+        }),
+      ],
+    })
+  })
+
+  it('shows aliased hook names in tree and JSON output', () => {
+    const graph = analyzeReactUsage('src/aliased-hook-entry.tsx', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+      filter: 'hook',
+    })
+    const jsonTree = graphToSerializableReactTree(graph, {
+      filter: 'hook',
+    })
+
+    expect(output).toContain('src/aliased-hook-entry.tsx:4:3')
+    expect(output).toContain(
+      'useFeature as useAliasedFeature [hook] (src/hooks/useFeature.ts)',
+    )
+    expect(jsonTree).toMatchObject({
+      entries: [
+        expect.objectContaining({
+          referenceName: 'useAliasedFeature',
+          node: expect.objectContaining({
+            name: 'useFeature',
+            symbolKind: 'hook',
+          }),
+        }),
+      ],
+      roots: [
+        expect.objectContaining({
+          name: 'useFeature',
+        }),
+      ],
+    })
   })
 })

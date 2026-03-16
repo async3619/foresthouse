@@ -6,6 +6,7 @@ import type { ReactSymbolKind } from './types/react-symbol-kind.js'
 const ANSI_RESET = '\u001B[0m'
 const ANSI_COMPONENT = '\u001B[36m'
 const ANSI_HOOK = '\u001B[35m'
+const ANSI_MUTED = '\u001B[38;5;244m'
 const ANSI_UNUSED = '\u001B[38;5;214m'
 
 interface ResolveColorSupportOptions {
@@ -59,6 +60,29 @@ export function formatReactSymbolLabel(
     return label
   }
 
-  const color = kind === 'component' ? ANSI_COMPONENT : ANSI_HOOK
-  return `${color}${label}${ANSI_RESET}`
+  return `${getReactSymbolColor(kind)}${label}${ANSI_RESET}`
+}
+
+export function colorizeReactLabel(
+  text: string,
+  kind: ReactSymbolKind,
+  enabled: boolean,
+): string {
+  if (!enabled) {
+    return text
+  }
+
+  return `${getReactSymbolColor(kind)}${text}${ANSI_RESET}`
+}
+
+export function colorizeMuted(text: string, enabled: boolean): string {
+  if (!enabled) {
+    return text
+  }
+
+  return `${ANSI_MUTED}${text}${ANSI_RESET}`
+}
+
+function getReactSymbolColor(kind: ReactSymbolKind): string {
+  return kind === 'component' ? ANSI_COMPONENT : ANSI_HOOK
 }
