@@ -1,3 +1,9 @@
+## [1.0.0-dev.9](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.8...v1.0.0-dev.9) (2026-03-16)
+
+### Bug Fixes
+
+* **react:** preserve aliased symbol names in usage tree ([#21](https://github.com/async3619/foresthouse/issues/21)) ([#29](https://github.com/async3619/foresthouse/issues/29)) ([c0c58ca](https://github.com/async3619/foresthouse/commit/c0c58caa68720f8348dadcb23a1f0ae378943066))
+
 ## [1.0.0-dev.8](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.7...v1.0.0-dev.8) (2026-03-16)
 
 ### Features
