@@ -15,6 +15,11 @@ export interface ImportCliOptions extends BaseCliOptions {
   readonly omitUnused: boolean
 }
 
+export interface DepsCliOptions extends BaseCliOptions {
+  readonly command: 'deps'
+  readonly directory: string
+}
+
 export interface ReactCliOptions extends BaseCliOptions {
   readonly command: 'react'
   readonly entryFile: string | undefined
@@ -23,4 +28,4 @@ export interface ReactCliOptions extends BaseCliOptions {
   readonly includeBuiltins: boolean
 }
 
-export type CliOptions = ImportCliOptions | ReactCliOptions
+export type CliOptions = DepsCliOptions | ImportCliOptions | ReactCliOptions

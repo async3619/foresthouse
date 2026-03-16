@@ -52,6 +52,20 @@ describe('main', () => {
     })
   })
 
+  it('passes parsed deps options to the CLI runner', () => {
+    main('1.2.3', ['deps', './packages/app', '--json'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'deps',
+      directory: './packages/app',
+      cwd: undefined,
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      json: true,
+    })
+  })
+
   it('supports import --entry', () => {
     main('1.2.3', ['import', '--entry', 'src/main.tsx'])
 
@@ -155,6 +169,7 @@ describe('main', () => {
     expect(runCli).not.toHaveBeenCalled()
     expect(consoleInfo).toHaveBeenCalled()
     expect(getConsoleOutput(consoleInfo)).toContain('Usage:')
+    expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse deps')
     expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse import')
     expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse react')
     expect(process.exitCode).toBeUndefined()
@@ -166,6 +181,7 @@ describe('main', () => {
     expect(runCli).not.toHaveBeenCalled()
     expect(consoleInfo).toHaveBeenCalled()
     expect(getConsoleOutput(consoleInfo)).toContain('Usage:')
+    expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse deps')
     expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse import')
     expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse react')
     expect(process.exitCode).toBeUndefined()
@@ -195,6 +211,16 @@ describe('main', () => {
     expect(runCli).not.toHaveBeenCalled()
     expect(stderrWrite).toHaveBeenCalledWith(
       'foresthouse: option `--cwd <path>` value is missing\n',
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('rejects deps --cwd because the directory must be positional', () => {
+    main('1.2.3', ['deps', '.', '--cwd', 'packages'])
+
+    expect(runCli).not.toHaveBeenCalled()
+    expect(stderrWrite).toHaveBeenCalledWith(
+      'foresthouse: Unknown option `--cwd`\n',
     )
     expect(process.exitCode).toBe(1)
   })

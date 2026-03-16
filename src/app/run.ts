@@ -1,3 +1,4 @@
+import { DepsCommand } from '../commands/deps.js'
 import { ImportCommand } from '../commands/import.js'
 import { ReactCommand } from '../commands/react.js'
 import type { CliOptions } from './args.js'
@@ -16,6 +17,10 @@ class CliApplication {
   private createCommand(): {
     run(): void
   } {
+    if (this.options.command === 'deps') {
+      return new DepsCommand(this.options)
+    }
+
     if (this.options.command === 'react') {
       return new ReactCommand(this.options)
     }

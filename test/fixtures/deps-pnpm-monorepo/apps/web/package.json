@@ -1,0 +1,8 @@
+{
+  "name": "@repo/web",
+  "private": true,
+  "dependencies": {
+    "@repo/ui": "workspace:*",
+    "react": "^19.1.1"
+  }
+}
