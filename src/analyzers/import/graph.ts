@@ -15,51 +15,59 @@ export function buildDependencyGraph(
   compilerOptions: ts.CompilerOptions,
   cwd: string,
 ): Map<string, SourceModuleNode> {
-  const host = createModuleResolutionHost(cwd)
-  const nodes = new Map<string, SourceModuleNode>()
-  const program = createProgram(entryPath, compilerOptions, cwd)
-  const checker = program.getTypeChecker()
-
-  visitFile(entryPath, compilerOptions, host, checker, program, nodes)
-  return nodes
+  return new DependencyGraphBuilder(entryPath, compilerOptions, cwd).build()
 }
 
-function visitFile(
-  filePath: string,
-  compilerOptions: ts.CompilerOptions,
-  host: ts.ModuleResolutionHost,
-  checker: ts.TypeChecker,
-  program: ts.Program,
-  nodes: Map<string, SourceModuleNode>,
-): void {
-  const normalizedPath = normalizeFilePath(filePath)
-  if (nodes.has(normalizedPath)) {
-    return
+class DependencyGraphBuilder {
+  private readonly host: ts.ModuleResolutionHost
+  private readonly nodes = new Map<string, SourceModuleNode>()
+  private readonly program: ts.Program
+  private readonly checker: ts.TypeChecker
+
+  constructor(
+    private readonly entryPath: string,
+    private readonly compilerOptions: ts.CompilerOptions,
+    cwd: string,
+  ) {
+    this.host = createModuleResolutionHost(cwd)
+    this.program = createProgram(entryPath, compilerOptions, cwd)
+    this.checker = this.program.getTypeChecker()
   }
 
-  const sourceFile =
-    program.getSourceFile(normalizedPath) ?? createSourceFile(normalizedPath)
+  build(): Map<string, SourceModuleNode> {
+    this.visitFile(this.entryPath)
+    return this.nodes
+  }
 
-  const references = collectModuleReferences(sourceFile, checker)
-  const dependencies = references.map((reference) =>
-    resolveDependency(reference, normalizedPath, compilerOptions, host),
-  )
+  private visitFile(filePath: string): void {
+    const normalizedPath = normalizeFilePath(filePath)
+    if (this.nodes.has(normalizedPath)) {
+      return
+    }
 
-  nodes.set(normalizedPath, {
-    id: normalizedPath,
-    dependencies,
-  })
+    const sourceFile =
+      this.program.getSourceFile(normalizedPath) ??
+      createSourceFile(normalizedPath)
 
-  for (const dependency of dependencies) {
-    if (dependency.kind === 'source') {
-      visitFile(
-        dependency.target,
-        compilerOptions,
-        host,
-        checker,
-        program,
-        nodes,
-      )
+    const references = collectModuleReferences(sourceFile, this.checker)
+    const dependencies = references.map((reference) =>
+      resolveDependency(
+        reference,
+        normalizedPath,
+        this.compilerOptions,
+        this.host,
+      ),
+    )
+
+    this.nodes.set(normalizedPath, {
+      id: normalizedPath,
+      dependencies,
+    })
+
+    for (const dependency of dependencies) {
+      if (dependency.kind === 'source') {
+        this.visitFile(dependency.target)
+      }
     }
   }
 }

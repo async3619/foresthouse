@@ -9,18 +9,37 @@ export function analyzeDependencies(
   entryFile: string,
   options: AnalyzeOptions = {},
 ): DependencyGraph {
-  const cwd = path.resolve(options.cwd ?? process.cwd())
-  const resolvedEntryPath = resolveExistingPath(cwd, entryFile)
-  const { compilerOptions, path: configPath } = loadCompilerOptions(
-    path.dirname(resolvedEntryPath),
-    options.configPath,
-  )
-  const nodes = buildDependencyGraph(resolvedEntryPath, compilerOptions, cwd)
+  return new ImportAnalyzer(entryFile, options).analyze()
+}
 
-  return {
-    cwd,
-    entryId: resolvedEntryPath,
-    nodes,
-    ...(configPath === undefined ? {} : { configPath }),
+class ImportAnalyzer {
+  private readonly cwd: string
+  private readonly entryPath: string
+
+  constructor(
+    entryFile: string,
+    private readonly options: AnalyzeOptions,
+  ) {
+    this.cwd = path.resolve(options.cwd ?? process.cwd())
+    this.entryPath = resolveExistingPath(this.cwd, entryFile)
+  }
+
+  analyze(): DependencyGraph {
+    const { compilerOptions, path: configPath } = loadCompilerOptions(
+      path.dirname(this.entryPath),
+      this.options.configPath,
+    )
+    const nodes = buildDependencyGraph(
+      this.entryPath,
+      compilerOptions,
+      this.cwd,
+    )
+
+    return {
+      cwd: this.cwd,
+      entryId: this.entryPath,
+      nodes,
+      ...(configPath === undefined ? {} : { configPath }),
+    }
   }
 }

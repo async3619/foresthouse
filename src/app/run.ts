@@ -7,19 +7,33 @@ import { graphToSerializableReactTree } from '../serializers/react-usage-tree.js
 import type { CliOptions } from './args.js'
 
 export function runCli(options: CliOptions): void {
-  if (options.react !== undefined) {
-    const graph = analyzeReactUsage(options.entryFile, {
-      ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
-      ...(options.configPath === undefined
-        ? {}
-        : { configPath: options.configPath }),
-    })
+  new CliApplication(options).run()
+}
 
-    if (options.json) {
+class CliApplication {
+  constructor(private readonly options: CliOptions) {}
+
+  run(): void {
+    if (this.options.react !== undefined) {
+      this.runReactMode()
+      return
+    }
+
+    this.runDependencyMode()
+  }
+
+  private runReactMode(): void {
+    const filter = this.options.react ?? 'all'
+    const graph = analyzeReactUsage(
+      this.options.entryFile,
+      this.getAnalyzeOptions(),
+    )
+
+    if (this.options.json) {
       process.stdout.write(
         `${JSON.stringify(
           graphToSerializableReactTree(graph, {
-            filter: options.react,
+            filter,
           }),
           null,
           2,
@@ -30,38 +44,49 @@ export function runCli(options: CliOptions): void {
 
     process.stdout.write(
       `${printReactUsageTree(graph, {
-        cwd: options.cwd ?? graph.cwd,
-        filter: options.react,
+        cwd: this.options.cwd ?? graph.cwd,
+        filter,
       })}\n`,
     )
-    return
   }
 
-  const graph = analyzeDependencies(options.entryFile, {
-    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
-    ...(options.configPath === undefined
-      ? {}
-      : { configPath: options.configPath }),
-  })
-
-  if (options.json) {
-    process.stdout.write(
-      `${JSON.stringify(
-        graphToSerializableTree(graph, {
-          omitUnused: options.omitUnused,
-        }),
-        null,
-        2,
-      )}\n`,
+  private runDependencyMode(): void {
+    const graph = analyzeDependencies(
+      this.options.entryFile,
+      this.getAnalyzeOptions(),
     )
-    return
+
+    if (this.options.json) {
+      process.stdout.write(
+        `${JSON.stringify(
+          graphToSerializableTree(graph, {
+            omitUnused: this.options.omitUnused,
+          }),
+          null,
+          2,
+        )}\n`,
+      )
+      return
+    }
+
+    process.stdout.write(
+      `${printDependencyTree(graph, {
+        cwd: this.options.cwd ?? graph.cwd,
+        includeExternals: this.options.includeExternals,
+        omitUnused: this.options.omitUnused,
+      })}\n`,
+    )
   }
 
-  process.stdout.write(
-    `${printDependencyTree(graph, {
-      cwd: options.cwd ?? graph.cwd,
-      includeExternals: options.includeExternals,
-      omitUnused: options.omitUnused,
-    })}\n`,
-  )
+  private getAnalyzeOptions(): {
+    readonly cwd?: string
+    readonly configPath?: string
+  } {
+    return {
+      ...(this.options.cwd === undefined ? {} : { cwd: this.options.cwd }),
+      ...(this.options.configPath === undefined
+        ? {}
+        : { configPath: this.options.configPath }),
+    }
+  }
 }
