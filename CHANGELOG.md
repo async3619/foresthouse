@@ -1,3 +1,9 @@
+## [1.0.0-dev.10](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.9...v1.0.0-dev.10) (2026-03-16)
+
+### Features
+
+* update React ASCII labels to JSX-style syntax ([#31](https://github.com/async3619/foresthouse/issues/31)) ([84968be](https://github.com/async3619/foresthouse/commit/84968be45abdb52600ea07b64c81c8d2d97a886a)), closes [#21](https://github.com/async3619/foresthouse/issues/21)
+
 ## [1.0.0-dev.9](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.8...v1.0.0-dev.9) (2026-03-16)
 
 ### Bug Fixes
