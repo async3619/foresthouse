@@ -23,19 +23,19 @@ describe('analyzeReactUsage', () => {
     })
 
     expect(output).toContain('src/main.tsx:3:7')
-    expect(output).toContain('AppShell [component] (src/AppShell.tsx)')
+    expect(output).toContain('<AppShell /> [component] (src/AppShell.tsx)')
     expect(output).toContain(
-      'Panel as PrimaryPanel [component] (src/components/Panel.tsx)',
+      '<Panel /> as PrimaryPanel [component] (src/components/Panel.tsx)',
     )
     expect(output).toContain(
-      'Button as PrimaryButton [component] (src/components/Button.tsx)',
+      '<Button /> as PrimaryButton [component] (src/components/Button.tsx)',
     )
-    expect(output).toContain('useEffect [hook] (react)')
-    expect(output).toContain('useFeature [hook] (src/hooks/useFeature.ts)')
+    expect(output).toContain('useEffect() [hook] (react)')
+    expect(output).toContain('useFeature() [hook] (src/hooks/useFeature.ts)')
     expect(output).toContain(
-      'usePanelState as usePanelStateAlias [hook] (src/hooks/usePanelState.ts)',
+      'usePanelState() as usePanelStateAlias [hook] (src/hooks/usePanelState.ts)',
     )
-    expect(output).not.toContain('Current [component]')
+    expect(output).not.toContain('<Current /> [component]')
   })
 
   it('can filter the tree by component or hook', () => {
@@ -53,19 +53,23 @@ describe('analyzeReactUsage', () => {
     })
 
     expect(componentOutput).toContain('src/main.tsx:3:7')
-    expect(componentOutput).toContain('AppShell [component] (src/AppShell.tsx)')
     expect(componentOutput).toContain(
-      'Panel as PrimaryPanel [component] (src/components/Panel.tsx)',
+      '<AppShell /> [component] (src/AppShell.tsx)',
     )
-    expect(componentOutput).not.toContain('useFeature [hook]')
+    expect(componentOutput).toContain(
+      '<Panel /> as PrimaryPanel [component] (src/components/Panel.tsx)',
+    )
+    expect(componentOutput).not.toContain('useFeature() [hook]')
 
     expect(hookOutput).not.toContain('src/main.tsx:3:7')
-    expect(hookOutput).toContain('useEffect [hook] (react)')
-    expect(hookOutput).toContain('useFeature [hook] (src/hooks/useFeature.ts)')
+    expect(hookOutput).toContain('useEffect() [hook] (react)')
     expect(hookOutput).toContain(
-      'usePanelState as usePanelStateAlias [hook] (src/hooks/usePanelState.ts)',
+      'useFeature() [hook] (src/hooks/useFeature.ts)',
     )
-    expect(hookOutput).not.toContain('AppShell [component]')
+    expect(hookOutput).toContain(
+      'usePanelState() as usePanelStateAlias [hook] (src/hooks/usePanelState.ts)',
+    )
+    expect(hookOutput).not.toContain('<AppShell /> [component]')
   })
 
   it('returns JSON with entry metadata and nested usages', () => {
@@ -141,8 +145,8 @@ describe('analyzeReactUsage', () => {
 
     expect(output).toContain('src/multi-entry.tsx:4:7')
     expect(output).toContain('src/multi-entry.tsx:5:7')
-    expect(output).toContain('AppShell [component] (src/AppShell.tsx)')
-    expect(output).toContain('Panel [component] (src/components/Panel.tsx)')
+    expect(output).toContain('<AppShell /> [component] (src/AppShell.tsx)')
+    expect(output).toContain('<Panel /> [component] (src/components/Panel.tsx)')
   })
 
   it('treats renders inside the entry component file as React entry locations', () => {
@@ -157,11 +161,13 @@ describe('analyzeReactUsage', () => {
 
     expect(output).toContain('src/entry-page.tsx:7:7')
     expect(output).toContain('src/entry-page.tsx:8:7')
-    expect(output).toContain('Panel [component] (src/components/Panel.tsx)')
+    expect(output).toContain('<Panel /> [component] (src/components/Panel.tsx)')
     expect(output).toContain(
-      'DynamicHost [component] (src/components/DynamicHost.tsx)',
+      '<DynamicHost /> [component] (src/components/DynamicHost.tsx)',
     )
-    expect(output).not.toContain('EntryPage [component] (src/entry-page.tsx)')
+    expect(output).not.toContain(
+      '<EntryPage /> [component] (src/entry-page.tsx)',
+    )
   })
 
   it('treats hook calls inside the entry component file as React entry locations', () => {
@@ -176,9 +182,11 @@ describe('analyzeReactUsage', () => {
 
     expect(output).toContain('src/entry-hook-page.tsx:7:3')
     expect(output).toContain('src/entry-hook-page.tsx:8:3')
-    expect(output).toContain('useEffect [hook] (react)')
-    expect(output).toContain('useFeature [hook] (src/hooks/useFeature.ts)')
-    expect(output).not.toContain('Panel [component] (src/components/Panel.tsx)')
+    expect(output).toContain('useEffect() [hook] (react)')
+    expect(output).toContain('useFeature() [hook] (src/hooks/useFeature.ts)')
+    expect(output).not.toContain(
+      '<Panel /> [component] (src/components/Panel.tsx)',
+    )
   })
 
   it('returns JSON entries for hook usages inside the entry component file', () => {
@@ -224,10 +232,10 @@ describe('analyzeReactUsage', () => {
       color: true,
     })
 
-    expect(output).toContain('\u001B[36mAppShell [component]\u001B[0m')
-    expect(output).toContain('\u001B[35museFeature [hook]\u001B[0m')
+    expect(output).toContain('\u001B[36m<AppShell /> [component]\u001B[0m')
+    expect(output).toContain('\u001B[35museFeature() [hook]\u001B[0m')
     expect(output).toContain(
-      '\u001B[36mPanel\u001B[0m \u001B[38;5;244mas PrimaryPanel\u001B[0m \u001B[36m[component]\u001B[0m',
+      '\u001B[36m<Panel />\u001B[0m \u001B[38;5;244mas PrimaryPanel\u001B[0m \u001B[36m[component]\u001B[0m',
     )
   })
 
@@ -246,7 +254,7 @@ describe('analyzeReactUsage', () => {
 
     expect(output).toContain('src/aliased-entry.tsx:4:10')
     expect(output).toContain(
-      'OriginalButton as AliasButton [component] (src/components/AliasedButton.tsx)',
+      '<OriginalButton /> as AliasButton [component] (src/components/AliasedButton.tsx)',
     )
     expect(jsonTree).toMatchObject({
       entries: [
@@ -281,7 +289,7 @@ describe('analyzeReactUsage', () => {
 
     expect(output).toContain('src/aliased-hook-entry.tsx:4:3')
     expect(output).toContain(
-      'useFeature as useAliasedFeature [hook] (src/hooks/useFeature.ts)',
+      'useFeature() as useAliasedFeature [hook] (src/hooks/useFeature.ts)',
     )
     expect(jsonTree).toMatchObject({
       entries: [

@@ -55,12 +55,19 @@ export function formatReactSymbolLabel(
   kind: ReactSymbolKind,
   enabled: boolean,
 ): string {
-  const label = `${name} [${kind}]`
+  const label = `${formatReactSymbolName(name, kind)} [${kind}]`
   if (!enabled) {
     return label
   }
 
   return `${getReactSymbolColor(kind)}${label}${ANSI_RESET}`
+}
+
+export function formatReactSymbolName(
+  name: string,
+  kind: ReactSymbolKind,
+): string {
+  return kind === 'component' ? `<${name} />` : `${name}()`
 }
 
 export function colorizeReactLabel(
