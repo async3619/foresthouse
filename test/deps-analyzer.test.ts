@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
-  analyzePackageDependencyDiff,
   analyzePackageDependencies,
+  analyzePackageDependencyDiff,
   diffGraphToSerializablePackageTree,
   graphToSerializablePackageTree,
   printPackageDependencyDiffTree,

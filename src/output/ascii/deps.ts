@@ -198,7 +198,10 @@ function resolveVisibleDependencyMarker(
     return dependency.change
   }
 
-  if (dependency.kind === 'workspace' && dependency.node.change !== 'unchanged') {
+  if (
+    dependency.kind === 'workspace' &&
+    dependency.node.change !== 'unchanged'
+  ) {
     return dependency.node.change
   }
 
@@ -219,7 +222,9 @@ function formatExternalDiffLabel(
   dependency: Extract<PackageDependencyDiffDependency, { kind: 'external' }>,
 ): string {
   if (dependency.change !== 'changed') {
-    return dependency.after?.target ?? dependency.before?.target ?? dependency.name
+    return (
+      dependency.after?.target ?? dependency.before?.target ?? dependency.name
+    )
   }
 
   const previousSpecifier = dependency.before?.specifier ?? 'none'

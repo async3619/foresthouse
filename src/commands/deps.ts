@@ -19,7 +19,10 @@ export class DepsCommand extends BaseCommand<
 > {
   protected analyze(): PackageDependencyGraph | PackageDependencyDiffGraph {
     if (this.options.diff !== undefined) {
-      return analyzePackageDependencyDiff(this.options.directory, this.options.diff)
+      return analyzePackageDependencyDiff(
+        this.options.directory,
+        this.options.diff,
+      )
     }
 
     return analyzePackageDependencies(this.options.directory)

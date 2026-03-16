@@ -2,14 +2,13 @@ import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-
-import type { PackageDependencyDiffGraph } from '../../types/package-dependency-diff-graph.js'
+import type { PackageDependencyChangeKind } from '../../types/package-dependency-change-kind.js'
 import type {
   PackageDependencyDiffDependency,
   PackageDependencyDiffState,
 } from '../../types/package-dependency-diff-dependency.js'
+import type { PackageDependencyDiffGraph } from '../../types/package-dependency-diff-graph.js'
 import type { PackageDependencyDiffNode } from '../../types/package-dependency-diff-node.js'
-import type { PackageDependencyChangeKind } from '../../types/package-dependency-change-kind.js'
 import type { PackageDependencyGraph } from '../../types/package-dependency-graph.js'
 import type { PackageManifestDependency } from '../../types/package-manifest-dependency.js'
 import { toDisplayPath } from '../../utils/to-display-path.js'
@@ -103,8 +102,14 @@ function resolveRepositoryInputPath(
   const existingPath = findNearestExistingPath(resolvedInputPath)
   const existingRealPath = fs.realpathSync.native(existingPath)
   const repositoryRealPath = fs.realpathSync.native(repositoryRoot)
-  const relativeFromExistingPath = path.relative(existingPath, resolvedInputPath)
-  const relativeToRepository = path.relative(repositoryRealPath, existingRealPath)
+  const relativeFromExistingPath = path.relative(
+    existingPath,
+    resolvedInputPath,
+  )
+  const relativeToRepository = path.relative(
+    repositoryRealPath,
+    existingRealPath,
+  )
   const normalizedPath = path.normalize(
     path.join(relativeToRepository, relativeFromExistingPath),
   )
@@ -231,7 +236,9 @@ function loadWorkingTreeGraph(
     resolveSnapshotInputPath(repositoryRoot, inputPathWithinRepository),
   )
 
-  return packageGraph === undefined ? undefined : toComparableGraph(packageGraph)
+  return packageGraph === undefined
+    ? undefined
+    : toComparableGraph(packageGraph)
 }
 
 function loadGitTreeGraph(
@@ -246,7 +253,9 @@ function loadGitTreeGraph(
       resolveSnapshotInputPath(snapshotRoot, inputPathWithinRepository),
     )
 
-    return packageGraph === undefined ? undefined : toComparableGraph(packageGraph)
+    return packageGraph === undefined
+      ? undefined
+      : toComparableGraph(packageGraph)
   } finally {
     fs.rmSync(snapshotRoot, { recursive: true, force: true })
   }
@@ -273,20 +282,18 @@ function materializeGitTreeSnapshot(
     ensureSnapshotDirectory(snapshotRoot, filePath)
   })
 
-  trackedFiles
-    .filter(isManifestSnapshotFile)
-    .forEach((filePath) => {
-      const fileContent = runGit(
-        repositoryRoot,
-        ['cat-file', '-p', `${tree}:${filePath}`],
-        {
-          trim: false,
-        },
-      )
-      const absolutePath = path.join(snapshotRoot, ...filePath.split('/'))
+  trackedFiles.filter(isManifestSnapshotFile).forEach((filePath) => {
+    const fileContent = runGit(
+      repositoryRoot,
+      ['cat-file', '-p', `${tree}:${filePath}`],
+      {
+        trim: false,
+      },
+    )
+    const absolutePath = path.join(snapshotRoot, ...filePath.split('/'))
 
-      fs.writeFileSync(absolutePath, fileContent)
-    })
+    fs.writeFileSync(absolutePath, fileContent)
+  })
 
   return snapshotRoot
 }
@@ -448,7 +455,12 @@ function diffPackageNode(
     afterGraph,
     nextAncestry,
   )
-  const change = resolveNodeChange(location, beforeNode, afterNode, dependencies)
+  const change = resolveNodeChange(
+    location,
+    beforeNode,
+    afterNode,
+    dependencies,
+  )
 
   return {
     kind: location.kind,
@@ -512,7 +524,9 @@ function compareDependencyLabels(
   return leftLabel.localeCompare(rightLabel)
 }
 
-function getDependencySortLabel(dependency: ComparablePackageDependency): string {
+function getDependencySortLabel(
+  dependency: ComparablePackageDependency,
+): string {
   if (dependency.kind === 'external') {
     return `${dependency.name}@${dependency.specifier}`
   }
@@ -572,7 +586,9 @@ function diffDependency(
       ...(beforeDependency === undefined
         ? {}
         : { before: toDiffState(beforeDependency) }),
-      ...(afterDependency === undefined ? {} : { after: toDiffState(afterDependency) }),
+      ...(afterDependency === undefined
+        ? {}
+        : { after: toDiffState(afterDependency) }),
       node,
     }
   }
@@ -594,7 +610,9 @@ function diffDependency(
     ...(beforeDependency === undefined
       ? {}
       : { before: toDiffState(beforeDependency) }),
-    ...(afterDependency === undefined ? {} : { after: toDiffState(afterDependency) }),
+    ...(afterDependency === undefined
+      ? {}
+      : { after: toDiffState(afterDependency) }),
   }
 }
 
@@ -618,7 +636,10 @@ function resolveDependencyChange(
     return 'changed'
   }
 
-  if (beforeDependency.kind === 'external' && afterDependency.kind === 'external') {
+  if (
+    beforeDependency.kind === 'external' &&
+    afterDependency.kind === 'external'
+  ) {
     return beforeDependency.specifier === afterDependency.specifier
       ? 'unchanged'
       : 'changed'

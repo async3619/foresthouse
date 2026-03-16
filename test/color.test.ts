@@ -39,9 +39,7 @@ describe('color helpers', () => {
     expect(colorizePackageDiff('~ changed', 'changed', true)).toBe(
       '\u001B[33m~ changed\u001B[0m',
     )
-    expect(colorizePackageDiff('~ changed', 'changed', false)).toBe(
-      '~ changed',
-    )
+    expect(colorizePackageDiff('~ changed', 'changed', false)).toBe('~ changed')
   })
 
   it('resolves automatic color support from terminal settings', () => {
