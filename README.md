@@ -52,6 +52,8 @@ src/main.ts
 - `--cwd <path>`: working directory for resolving the entry file and config
 - `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
 - `--include-externals`: include packages and Node built-ins in the output
+- `--no-unused`: omit imports that are never referenced
+- `--react[=component|hook]`: print a React usage tree instead of the import tree
 - `--json`: print a JSON tree instead of ASCII output
 
 ## Development

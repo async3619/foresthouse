@@ -57,6 +57,7 @@
   "author": "Sophia (Turner) <me@sophia-dev.io>",
   "license": "MIT",
   "dependencies": {
+    "cac": "^7.0.0",
     "oxc-parser": "0.119.0",
     "typescript": "5.9.3"
   },
