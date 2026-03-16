@@ -65,8 +65,10 @@ src/main.ts
 `react` command:
 
 - `foresthouse react <path>`: print a React usage tree from an entry file
+- `foresthouse react --nextjs`: infer Next.js page entries from `app/`, `pages/`, `src/app/`, and `src/pages/`
 - `--cwd <path>`: working directory for resolving the entry file and config
 - `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
+- `--nextjs`: allow omitting the explicit React entry file and discover Next.js page entries relative to `--cwd` or the current directory
 - `--filter <component|hook|builtin>`: limit the output to a specific React symbol kind
 - `--builtin`: include built-in HTML nodes such as `button` and `div`
 - `--no-workspaces`: stop at sibling workspace package boundaries instead of expanding them

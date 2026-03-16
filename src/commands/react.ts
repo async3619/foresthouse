@@ -1,5 +1,6 @@
 import { analyzeReactUsage } from '../analyzers/react/index.js'
 import type { ReactCliOptions } from '../app/args.js'
+import { resolveReactEntryFiles } from '../app/react-entry-files.js'
 import { printReactUsageTree } from '../output/ascii/react.js'
 import { graphToSerializableReactTree } from '../output/json/react.js'
 import type { AnalyzeOptions } from '../types/analyze-options.js'
@@ -12,7 +13,10 @@ export class ReactCommand extends BaseCommand<
   ReactCliOptions
 > {
   protected analyze(): ReactUsageGraph {
-    return analyzeReactUsage(this.options.entryFile, this.getAnalyzeOptions())
+    return analyzeReactUsage(
+      resolveReactEntryFiles(this.options),
+      this.getAnalyzeOptions(),
+    )
   }
 
   protected serialize(graph: ReactUsageGraph): object {

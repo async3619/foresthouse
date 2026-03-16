@@ -8,6 +8,7 @@ import type { ReactUsageEdge } from '../../types/react-usage-edge.js'
 import type { ReactUsageEntry } from '../../types/react-usage-entry.js'
 import type { ReactUsageGraph } from '../../types/react-usage-graph.js'
 import type { ReactUsageNode } from '../../types/react-usage-node.js'
+import type { SourceModuleNode } from '../../types/source-module-node.js'
 import { isSourceCodeFile } from '../../utils/is-source-code-file.js'
 import { BaseAnalyzer } from '../base.js'
 import { analyzeDependencies } from '../import/index.js'
@@ -22,15 +23,31 @@ import {
 } from './references.js'
 
 export function analyzeReactUsage(
-  entryFile: string,
+  entryFile: string | readonly string[],
   options: AnalyzeOptions = {},
 ): ReactUsageGraph {
-  return new ReactAnalyzer(entryFile, options).analyze()
+  return new ReactAnalyzer(normalizeEntryFiles(entryFile), options).analyze()
 }
 
 class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
+  constructor(
+    private readonly entryFiles: readonly string[],
+    options: AnalyzeOptions,
+  ) {
+    const [firstEntryFile] = entryFiles
+    if (firstEntryFile === undefined) {
+      throw new Error('At least one React entry file is required.')
+    }
+
+    super(firstEntryFile, options)
+  }
+
   protected doAnalyze(): ReactUsageGraph {
-    const dependencyGraph = analyzeDependencies(this.entryFile, this.options)
+    const dependencyGraphs = this.entryFiles.map((entryFile) =>
+      analyzeDependencies(entryFile, this.options),
+    )
+    const dependencyGraph = mergeDependencyGraphs(dependencyGraphs)
+    const entryIds = dependencyGraphs.map((graph) => graph.entryId)
     const fileAnalyses = this.collectFileAnalyses(dependencyGraph)
     const nodes = this.createNodes(fileAnalyses)
     this.attachUsages(fileAnalyses, nodes)
@@ -39,16 +56,17 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
     return {
       cwd: dependencyGraph.cwd,
       entryId: dependencyGraph.entryId,
+      entryIds,
       nodes,
       entries,
     }
   }
 
   private collectFileAnalyses(
-    dependencyGraph: DependencyGraph,
+    dependencyGraph: MergedDependencyGraph,
   ): Map<string, import('./file.js').FileAnalysis> {
     const reachableFiles = new Set<string>([
-      dependencyGraph.entryId,
+      ...dependencyGraph.entryIds,
       ...dependencyGraph.nodes.keys(),
     ])
     const fileAnalyses = new Map<string, import('./file.js').FileAnalysis>()
@@ -78,7 +96,7 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
           parseResult.program,
           filePath,
           sourceText,
-          filePath === dependencyGraph.entryId,
+          dependencyGraph.entryIds.includes(filePath),
           sourceDependencies,
           this.options.includeBuiltins === true,
         ),
@@ -212,4 +230,51 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
       compareReactUsageEntries(left, right, nodes),
     )
   }
+}
+
+function normalizeEntryFiles(entryFile: string | readonly string[]): string[] {
+  const entryFiles = Array.isArray(entryFile) ? entryFile : [entryFile]
+  const dedupedEntryFiles = [...new Set(entryFiles)]
+
+  if (dedupedEntryFiles.length === 0) {
+    throw new Error('At least one React entry file is required.')
+  }
+
+  return dedupedEntryFiles
+}
+
+function mergeDependencyGraphs(
+  graphs: readonly DependencyGraph[],
+): MergedDependencyGraph {
+  const firstGraph = graphs[0]
+  if (firstGraph === undefined) {
+    throw new Error('At least one dependency graph is required.')
+  }
+
+  const nodes = new Map<string, SourceModuleNode>()
+  for (const graph of graphs) {
+    for (const [nodeId, node] of graph.nodes) {
+      if (!nodes.has(nodeId)) {
+        nodes.set(nodeId, node)
+      }
+    }
+  }
+
+  const uniqueConfigPaths = [
+    ...new Set(graphs.map((graph) => graph.configPath)),
+  ]
+  const configPath =
+    uniqueConfigPaths.length === 1 ? uniqueConfigPaths[0] : undefined
+
+  return {
+    cwd: firstGraph.cwd,
+    entryId: firstGraph.entryId,
+    entryIds: graphs.map((graph) => graph.entryId),
+    nodes,
+    ...(configPath === undefined ? {} : { configPath }),
+  }
+}
+
+interface MergedDependencyGraph extends DependencyGraph {
+  readonly entryIds: readonly string[]
 }

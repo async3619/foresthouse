@@ -71,12 +71,16 @@ class CliMain {
       )
 
     cli
-      .command('react <entry-file>', 'Analyze React usage from an entry file.')
-      .usage('react <entry-file> [options]')
+      .command('react [entry-file]', 'Analyze React usage from an entry file.')
+      .usage('react [entry-file] [options]')
       .option('--cwd <path>', 'Working directory used for relative paths.')
       .option(
         '--config <path>',
         'Explicit tsconfig.json or jsconfig.json path.',
+      )
+      .option(
+        '--nextjs',
+        'Infer Next.js page entries from app/ and pages/ when no entry is provided.',
       )
       .option(
         '--filter <mode>',
@@ -92,9 +96,11 @@ class CliMain {
         'Restrict traversal to the active tsconfig.json or jsconfig.json project.',
       )
       .option('--json', 'Print the React usage tree as JSON.')
-      .action((entryFile: string, rawOptions: ParsedReactCliOptions) => {
-        runCli(normalizeReactCliOptions(entryFile, rawOptions))
-      })
+      .action(
+        (entryFile: string | undefined, rawOptions: ParsedReactCliOptions) => {
+          runCli(normalizeReactCliOptions(entryFile, rawOptions))
+        },
+      )
 
     cli.help()
     cli.version(this.version)
@@ -149,6 +155,7 @@ interface ParsedImportCliOptions extends ParsedBaseCliOptions {
 
 interface ParsedReactCliOptions extends ParsedBaseCliOptions {
   readonly filter?: string
+  readonly nextjs?: boolean
   readonly builtin?: boolean
 }
 
@@ -170,18 +177,19 @@ function normalizeImportCliOptions(
 }
 
 function normalizeReactCliOptions(
-  entryFile: string,
+  entryFile: string | undefined,
   options: ParsedReactCliOptions,
 ): ReactCliOptions {
   return {
     command: 'react',
-    entryFile,
+    entryFile: resolveReactEntryFile(entryFile, options.nextjs),
     cwd: options.cwd,
     configPath: options.config,
     expandWorkspaces: options.workspaces !== false,
     projectOnly: options.projectOnly === true,
     json: options.json === true,
     filter: normalizeReactFilter(options.filter),
+    nextjs: options.nextjs === true,
     includeBuiltins: options.builtin === true,
   }
 }
@@ -223,4 +231,21 @@ function normalizeReactFilter(
   }
 
   throw new Error(`Unknown React filter: ${filter}`)
+}
+
+function resolveReactEntryFile(
+  entryFile: string | undefined,
+  nextjs: boolean | undefined,
+): string | undefined {
+  if (entryFile !== undefined) {
+    return entryFile
+  }
+
+  if (nextjs === true) {
+    return undefined
+  }
+
+  throw new Error(
+    'Missing React entry file. Use `foresthouse react <entry-file>` or `foresthouse react --nextjs`.',
+  )
 }
