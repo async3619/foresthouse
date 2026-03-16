@@ -32,15 +32,84 @@ export function resolveReactReference(
     return undefined
   }
 
-  const targetId = sourceFileAnalysis.exportsByName.get(
+  const targetId = resolveExportedSymbol(
+    sourceFileAnalysis,
     importBinding.importedName,
+    kind,
+    fileAnalyses,
+    new Set<string>(),
   )
   if (targetId === undefined) {
     return undefined
   }
 
-  const targetSymbol = sourceFileAnalysis.symbolsById.get(targetId)
-  return targetSymbol?.kind === kind ? targetId : undefined
+  return targetId
+}
+
+function resolveExportedSymbol(
+  fileAnalysis: FileAnalysis,
+  exportName: string,
+  kind: ReactSymbolKind,
+  fileAnalyses: ReadonlyMap<string, FileAnalysis>,
+  visited: Set<string>,
+): string | undefined {
+  const visitKey = `${fileAnalysis.filePath}:${exportName}:${kind}`
+  if (visited.has(visitKey)) {
+    return undefined
+  }
+
+  visited.add(visitKey)
+
+  const directTargetId = fileAnalysis.exportsByName.get(exportName)
+  if (directTargetId !== undefined) {
+    const directTargetSymbol = fileAnalysis.symbolsById.get(directTargetId)
+    if (directTargetSymbol?.kind === kind) {
+      return directTargetId
+    }
+  }
+
+  const reExportBinding = fileAnalysis.reExportBindingsByName.get(exportName)
+  if (reExportBinding?.sourcePath !== undefined) {
+    const reExportSourceAnalysis = fileAnalyses.get(reExportBinding.sourcePath)
+    if (reExportSourceAnalysis !== undefined) {
+      const reExportTargetId = resolveExportedSymbol(
+        reExportSourceAnalysis,
+        reExportBinding.importedName,
+        kind,
+        fileAnalyses,
+        visited,
+      )
+      if (reExportTargetId !== undefined) {
+        return reExportTargetId
+      }
+    }
+  }
+
+  for (const exportAllBinding of fileAnalysis.exportAllBindings) {
+    if (exportAllBinding.sourcePath === undefined) {
+      continue
+    }
+
+    const exportAllSourceAnalysis = fileAnalyses.get(
+      exportAllBinding.sourcePath,
+    )
+    if (exportAllSourceAnalysis === undefined) {
+      continue
+    }
+
+    const exportAllTargetId = resolveExportedSymbol(
+      exportAllSourceAnalysis,
+      exportName,
+      kind,
+      fileAnalyses,
+      visited,
+    )
+    if (exportAllTargetId !== undefined) {
+      return exportAllTargetId
+    }
+  }
+
+  return undefined
 }
 
 export function addExternalHookNodes(

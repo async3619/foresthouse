@@ -8,4 +8,5 @@ export interface DependencyEdge {
   readonly unused: boolean
   readonly kind: DependencyKind
   readonly target: string
+  readonly boundary?: 'workspace' | 'project'
 }

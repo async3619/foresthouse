@@ -11,6 +11,13 @@ import {
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 const fixtureDirectory = path.join(currentDirectory, 'fixtures', 'basic')
+const monorepoFixtureDirectory = path.join(
+  currentDirectory,
+  'fixtures',
+  'monorepo',
+  'packages',
+  'app',
+)
 
 describe('analyzeDependencies', () => {
   it('resolves relative imports and tsconfig path aliases', () => {
@@ -121,6 +128,121 @@ describe('analyzeDependencies', () => {
 
     expect(output).toContain(
       'src/unused-helper.ts \u001B[38;5;214m(unused)\u001B[0m',
+    )
+  })
+
+  it('expands sibling workspace packages and their own tsconfig aliases by default', () => {
+    const graph = analyzeDependencies('src/main.ts', {
+      cwd: monorepoFixtureDirectory,
+    })
+
+    expect(
+      graph.nodes.has(path.join(monorepoFixtureDirectory, 'src', 'main.ts')),
+    ).toBe(true)
+    expect(
+      graph.nodes.has(
+        path.join(monorepoFixtureDirectory, '..', 'shared', 'src', 'index.ts'),
+      ),
+    ).toBe(true)
+    expect(
+      graph.nodes.has(
+        path.join(
+          monorepoFixtureDirectory,
+          '..',
+          'shared',
+          'src',
+          'internal',
+          'feature.ts',
+        ),
+      ),
+    ).toBe(true)
+
+    const output = printDependencyTree(graph, {
+      color: false,
+    })
+
+    expect(output).toContain(
+      path.join(monorepoFixtureDirectory, '..', 'shared', 'src', 'index.ts'),
+    )
+    expect(output).toContain(
+      path.join(
+        monorepoFixtureDirectory,
+        '..',
+        'shared',
+        'src',
+        'internal',
+        'feature.ts',
+      ),
+    )
+  })
+
+  it('can stop at sibling workspace boundaries when workspace expansion is disabled', () => {
+    const graph = analyzeDependencies('src/main.ts', {
+      cwd: monorepoFixtureDirectory,
+      expandWorkspaces: false,
+    })
+
+    expect(
+      graph.nodes.has(
+        path.join(monorepoFixtureDirectory, '..', 'shared', 'src', 'index.ts'),
+      ),
+    ).toBe(false)
+
+    const output = printDependencyTree(graph, {
+      color: false,
+    })
+    const jsonTree = graphToSerializableTree(graph)
+
+    expect(output).toContain(
+      `${path.join(
+        monorepoFixtureDirectory,
+        '..',
+        'shared',
+        'src',
+        'index.ts',
+      )} [workspace boundary]`,
+    )
+    expect(jsonTree).toMatchObject({
+      dependencies: [
+        expect.objectContaining({
+          kind: 'boundary',
+          boundary: 'workspace',
+          target: path.join(
+            monorepoFixtureDirectory,
+            '..',
+            'shared',
+            'src',
+            'index.ts',
+          ),
+        }),
+      ],
+    })
+  })
+
+  it('can restrict traversal to the active TypeScript project', () => {
+    const graph = analyzeDependencies('src/main.ts', {
+      cwd: monorepoFixtureDirectory,
+      projectOnly: true,
+    })
+
+    expect(
+      graph.nodes.has(
+        path.join(monorepoFixtureDirectory, '..', 'shared', 'src', 'index.ts'),
+      ),
+    ).toBe(false)
+
+    const output = printDependencyTree(graph, {
+      color: false,
+    })
+
+    expect(output).toContain(
+      `${path.join(
+        monorepoFixtureDirectory,
+        '..',
+        'shared',
+        'src',
+        'index.ts',
+      )} [project boundary]`,
     )
   })
 })

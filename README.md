@@ -18,6 +18,7 @@
 - Reads a JavaScript/TypeScript entry file (`.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`)
 - Resolves local imports, re-exports, `require()`, and string-literal dynamic `import()`
 - Honors the nearest `tsconfig.json` or `jsconfig.json`, including `baseUrl` and `paths`
+- Expands sibling workspace packages by default, including their own `tsconfig` alias rules
 - Prints a tree by default, or JSON with `--json`
 - Colorizes ASCII output automatically when the terminal supports ANSI colors
 
@@ -56,6 +57,8 @@ src/main.ts
 - `--cwd <path>`: working directory for resolving the entry file and config
 - `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
 - `--include-externals`: include packages and Node built-ins in the output
+- `--no-workspaces`: stop at sibling workspace package boundaries instead of expanding them
+- `--project-only`: restrict traversal to the active `tsconfig.json` or `jsconfig.json` project
 - `--no-unused`: omit imports that are never referenced
 - `--json`: print a JSON tree instead of ASCII output
 
@@ -65,6 +68,8 @@ src/main.ts
 - `--cwd <path>`: working directory for resolving the entry file and config
 - `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
 - `--filter <component|hook>`: limit the output to a specific React symbol kind
+- `--no-workspaces`: stop at sibling workspace package boundaries instead of expanding them
+- `--project-only`: restrict traversal to the active `tsconfig.json` or `jsconfig.json` project
 - `--json`: print a JSON tree instead of ASCII output
 
 ## Development

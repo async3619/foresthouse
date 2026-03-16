@@ -1,5 +1,6 @@
 import { builtinModules } from 'node:module'
 import path from 'node:path'
+import type { ResolverFactory } from 'oxc-resolver'
 import ts from 'typescript'
 
 import type { DependencyEdge } from '../../types/dependency-edge.js'
@@ -12,35 +13,75 @@ const BUILTIN_MODULES = new Set(
   builtinModules.flatMap((name) => [name, `node:${name}`]),
 )
 
+export interface ResolverConfigContext {
+  readonly path?: string
+  readonly compilerOptions: ts.CompilerOptions
+}
+
+export interface ResolveDependencyOptions {
+  readonly cwd: string
+  readonly entryConfigPath?: string
+  readonly expandWorkspaces: boolean
+  readonly projectOnly: boolean
+  readonly getConfigForFile: (filePath: string) => ResolverConfigContext
+  readonly getResolverForFile: (filePath: string) => ResolverFactory
+}
+
 export function resolveDependency(
   reference: ModuleReference,
   containingFile: string,
-  compilerOptions: ts.CompilerOptions,
-  host: ts.ModuleResolutionHost,
+  options: ResolveDependencyOptions,
 ): DependencyEdge {
   const specifier = reference.specifier
   if (BUILTIN_MODULES.has(specifier)) {
     return createEdge(reference, 'builtin', specifier)
   }
 
+  const containingConfig = options.getConfigForFile(containingFile)
+  const oxcResolution = resolveWithOxc(
+    reference,
+    specifier,
+    containingFile,
+    options,
+  )
+  if (oxcResolution !== undefined) {
+    return oxcResolution
+  }
+
+  const host = createResolutionHost(containingConfig, options.cwd)
   const resolution = ts.resolveModuleName(
     specifier,
     containingFile,
-    compilerOptions,
+    containingConfig.compilerOptions,
     host,
   ).resolvedModule
 
   if (resolution !== undefined) {
     const resolvedPath = normalizeFilePath(resolution.resolvedFileName)
-    if (
-      resolution.isExternalLibraryImport ||
-      resolvedPath.includes(`${path.sep}node_modules${path.sep}`)
-    ) {
-      return createEdge(reference, 'external', specifier)
+    const realPath = resolveRealPath(resolvedPath)
+    const sourcePath = pickSourcePath(resolvedPath, realPath)
+
+    if (sourcePath !== undefined) {
+      const boundary = classifyBoundary(specifier, sourcePath, options)
+      if (boundary !== undefined) {
+        return createEdge(reference, 'boundary', sourcePath, boundary)
+      }
+
+      if (
+        !resolution.isExternalLibraryImport ||
+        !isInsideNodeModules(sourcePath) ||
+        (realPath !== undefined && !isInsideNodeModules(realPath))
+      ) {
+        return createEdge(reference, 'source', sourcePath)
+      }
     }
 
-    if (isSourceCodeFile(resolvedPath) && !resolvedPath.endsWith('.d.ts')) {
-      return createEdge(reference, 'source', resolvedPath)
+    if (
+      resolution.isExternalLibraryImport ||
+      isInsideNodeModules(resolvedPath) ||
+      (realPath !== undefined && isInsideNodeModules(realPath))
+    ) {
+      return createEdge(reference, 'external', specifier)
     }
   }
 
@@ -51,10 +92,36 @@ export function resolveDependency(
   return createEdge(reference, 'missing', specifier)
 }
 
+function resolveWithOxc(
+  reference: ModuleReference,
+  specifier: string,
+  containingFile: string,
+  options: ResolveDependencyOptions,
+): DependencyEdge | undefined {
+  try {
+    const result = options
+      .getResolverForFile(containingFile)
+      .resolveFileSync(containingFile, specifier)
+
+    if (result.builtin !== undefined) {
+      return createEdge(reference, 'builtin', result.builtin.resolved)
+    }
+
+    if (result.path !== undefined) {
+      return classifyResolvedPath(reference, specifier, result.path, options)
+    }
+  } catch {
+    return undefined
+  }
+
+  return undefined
+}
+
 function createEdge(
   reference: ModuleReference,
   kind: DependencyKind,
   target: string,
+  boundary?: 'workspace' | 'project',
 ): DependencyEdge {
   return {
     specifier: reference.specifier,
@@ -63,5 +130,115 @@ function createEdge(
     unused: reference.unused,
     kind,
     target,
+    ...(boundary === undefined ? {} : { boundary }),
   }
+}
+
+function createResolutionHost(
+  config: ResolverConfigContext,
+  cwd: string,
+): ts.ModuleResolutionHost {
+  return {
+    fileExists: ts.sys.fileExists,
+    readFile: ts.sys.readFile,
+    directoryExists: ts.sys.directoryExists,
+    getCurrentDirectory: () =>
+      config.path === undefined ? cwd : path.dirname(config.path),
+    getDirectories: ts.sys.getDirectories,
+    ...(ts.sys.realpath === undefined ? {} : { realpath: ts.sys.realpath }),
+  }
+}
+
+function resolveRealPath(resolvedPath: string): string | undefined {
+  if (ts.sys.realpath === undefined) {
+    return undefined
+  }
+
+  try {
+    return normalizeFilePath(ts.sys.realpath(resolvedPath))
+  } catch {
+    return undefined
+  }
+}
+
+function classifyResolvedPath(
+  reference: ModuleReference,
+  specifier: string,
+  resolvedPathValue: string,
+  options: ResolveDependencyOptions,
+): DependencyEdge {
+  const resolvedPath = normalizeFilePath(resolvedPathValue)
+  const realPath = resolveRealPath(resolvedPath)
+  const sourcePath = pickSourcePath(resolvedPath, realPath)
+
+  if (sourcePath !== undefined) {
+    const boundary = classifyBoundary(specifier, sourcePath, options)
+    if (boundary !== undefined) {
+      return createEdge(reference, 'boundary', sourcePath, boundary)
+    }
+
+    if (
+      !isInsideNodeModules(sourcePath) ||
+      (realPath !== undefined && !isInsideNodeModules(realPath))
+    ) {
+      return createEdge(reference, 'source', sourcePath)
+    }
+  }
+
+  return createEdge(reference, 'external', specifier)
+}
+
+function pickSourcePath(
+  resolvedPath: string,
+  realPath: string | undefined,
+): string | undefined {
+  const candidates = [realPath, resolvedPath]
+
+  for (const candidate of candidates) {
+    if (
+      candidate !== undefined &&
+      isSourceCodeFile(candidate) &&
+      !candidate.endsWith('.d.ts')
+    ) {
+      return candidate
+    }
+  }
+
+  return undefined
+}
+
+function classifyBoundary(
+  specifier: string,
+  sourcePath: string,
+  options: ResolveDependencyOptions,
+): 'workspace' | 'project' | undefined {
+  const targetConfigPath = options.getConfigForFile(sourcePath).path
+  const entryConfigPath = options.entryConfigPath
+
+  if (
+    options.projectOnly &&
+    entryConfigPath !== undefined &&
+    targetConfigPath !== entryConfigPath
+  ) {
+    return 'project'
+  }
+
+  if (
+    !options.expandWorkspaces &&
+    isWorkspaceLikeImport(specifier) &&
+    entryConfigPath !== undefined &&
+    targetConfigPath !== entryConfigPath
+  ) {
+    return 'workspace'
+  }
+
+  return undefined
+}
+
+function isWorkspaceLikeImport(specifier: string): boolean {
+  return !specifier.startsWith('.') && !path.isAbsolute(specifier)
+}
+
+function isInsideNodeModules(filePath: string): boolean {
+  return filePath.includes(`${path.sep}node_modules${path.sep}`)
 }

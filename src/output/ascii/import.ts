@@ -112,7 +112,11 @@ function filterDependencies(
       return false
     }
 
-    if (dependency.kind === 'source' || dependency.kind === 'missing') {
+    if (
+      dependency.kind === 'source' ||
+      dependency.kind === 'missing' ||
+      dependency.kind === 'boundary'
+    ) {
       return true
     }
 
@@ -156,6 +160,20 @@ function formatDependencyLabel(
     return colorizeUnusedMarker(
       withUnusedSuffix(
         `${annotation}${dependency.specifier} [missing]`,
+        dependency.unused,
+      ),
+      color,
+    )
+  }
+
+  if (dependency.kind === 'boundary') {
+    return colorizeUnusedMarker(
+      withUnusedSuffix(
+        `${annotation}${toDisplayPath(dependency.target, cwd)} [${
+          dependency.boundary === 'project'
+            ? 'project boundary'
+            : 'workspace boundary'
+        }]`,
         dependency.unused,
       ),
       color,

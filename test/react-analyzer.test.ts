@@ -11,6 +11,13 @@ import {
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 const fixtureDirectory = path.join(currentDirectory, 'fixtures', 'react-mode')
+const monorepoFixtureDirectory = path.join(
+  currentDirectory,
+  'fixtures',
+  'monorepo',
+  'packages',
+  'app',
+)
 
 describe('analyzeReactUsage', () => {
   it('builds a component and hook usage tree', () => {
@@ -325,6 +332,97 @@ describe('analyzeReactUsage', () => {
               node: expect.objectContaining({
                 name: 'usePanelState',
                 symbolKind: 'hook',
+              }),
+            }),
+          ],
+        }),
+      ],
+    })
+  })
+
+  it('resolves hooks that are re-exported through export-all barrels', () => {
+    const graph = analyzeReactUsage('src/reexported-hook-entry.tsx', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+      filter: 'hook',
+    })
+    const jsonTree = graphToSerializableReactTree(graph, {
+      filter: 'hook',
+    })
+
+    expect(output).toContain(
+      'useLibraryHook() [hook] (src/reexported-hooks/useLibraryHook.ts)',
+    )
+    expect(jsonTree).toMatchObject({
+      roots: [
+        expect.objectContaining({
+          name: 'useLibraryHook',
+          filePath: 'src/reexported-hooks/useLibraryHook.ts',
+        }),
+      ],
+    })
+  })
+
+  it('includes sibling workspace React components and hooks by default', () => {
+    const graph = analyzeReactUsage('src/main.tsx', {
+      cwd: monorepoFixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+    })
+    const jsonTree = graphToSerializableReactTree(graph)
+
+    expect(output).toContain('<App /> [component] (src/main.tsx)')
+    expect(output).toContain(
+      `<SharedPanel /> [component] (${path.join(
+        monorepoFixtureDirectory,
+        '..',
+        'ui',
+        'src',
+        'components',
+        'SharedPanel.tsx',
+      )})`,
+    )
+    expect(output).toContain(
+      `useSharedPanelState() [hook] (${path.join(
+        monorepoFixtureDirectory,
+        '..',
+        'ui',
+        'src',
+        'internal',
+        'useSharedPanelState.ts',
+      )})`,
+    )
+    expect(jsonTree).toMatchObject({
+      roots: [
+        expect.objectContaining({
+          name: 'App',
+          usages: [
+            expect.objectContaining({
+              kind: 'render',
+              node: expect.objectContaining({
+                name: 'SharedPanel',
+                filePath: path.join(
+                  monorepoFixtureDirectory,
+                  '..',
+                  'ui',
+                  'src',
+                  'components',
+                  'SharedPanel.tsx',
+                ),
+                usages: [
+                  expect.objectContaining({
+                    kind: 'hook-call',
+                    node: expect.objectContaining({
+                      name: 'useSharedPanelState',
+                      symbolKind: 'hook',
+                    }),
+                  }),
+                ],
               }),
             }),
           ],

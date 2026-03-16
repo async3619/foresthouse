@@ -1,4 +1,5 @@
 import type {
+  ExportAllDeclaration,
   ExportDefaultDeclaration,
   ExportNamedDeclaration,
   ImportDeclaration,
@@ -21,13 +22,24 @@ export function collectImportsAndExports(
   symbolsByName: ReadonlyMap<string, PendingReactUsageNode>,
   importsByLocalName: Map<string, ImportBinding>,
   exportsByName: Map<string, string>,
+  reExportBindingsByName: Map<string, ImportBinding>,
+  exportAllBindings: ImportBinding[],
 ): void {
   switch (statement.type) {
     case 'ImportDeclaration':
       collectImportBindings(statement, sourceDependencies, importsByLocalName)
       return
     case 'ExportNamedDeclaration':
-      collectNamedExports(statement, symbolsByName, exportsByName)
+      collectNamedExports(
+        statement,
+        sourceDependencies,
+        symbolsByName,
+        exportsByName,
+        reExportBindingsByName,
+      )
+      return
+    case 'ExportAllDeclaration':
+      collectExportAllBindings(statement, sourceDependencies, exportAllBindings)
       return
     case 'ExportDefaultDeclaration':
       collectDefaultExport(statement, symbolsByName, exportsByName)
@@ -104,8 +116,10 @@ function getImportBinding(
 
 function collectNamedExports(
   declaration: ExportNamedDeclaration,
+  sourceDependencies: ReadonlyMap<string, string>,
   symbolsByName: ReadonlyMap<string, PendingReactUsageNode>,
   exportsByName: Map<string, string>,
+  reExportBindingsByName: Map<string, ImportBinding>,
 ): void {
   if (declaration.exportKind === 'type') {
     return
@@ -134,6 +148,20 @@ function collectNamedExports(
   }
 
   if (declaration.source !== null) {
+    const sourceSpecifier = declaration.source.value
+    const sourcePath = sourceDependencies.get(sourceSpecifier)
+
+    declaration.specifiers.forEach((specifier) => {
+      if (specifier.exportKind === 'type') {
+        return
+      }
+
+      reExportBindingsByName.set(toModuleExportName(specifier.exported), {
+        importedName: toModuleExportName(specifier.local),
+        sourceSpecifier,
+        ...(sourcePath === undefined ? {} : { sourcePath }),
+      })
+    })
     return
   }
 
@@ -145,6 +173,25 @@ function collectNamedExports(
     const localName = toModuleExportName(specifier.local)
     const exportedName = toModuleExportName(specifier.exported)
     addExportBinding(localName, exportedName, symbolsByName, exportsByName)
+  })
+}
+
+function collectExportAllBindings(
+  declaration: ExportAllDeclaration,
+  sourceDependencies: ReadonlyMap<string, string>,
+  exportAllBindings: ImportBinding[],
+): void {
+  if (declaration.exportKind === 'type') {
+    return
+  }
+
+  const sourceSpecifier = declaration.source.value
+  const sourcePath = sourceDependencies.get(sourceSpecifier)
+
+  exportAllBindings.push({
+    importedName: '*',
+    sourceSpecifier,
+    ...(sourcePath === undefined ? {} : { sourcePath }),
   })
 }
 

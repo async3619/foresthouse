@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@ui-internal/*": ["src/internal/*"]
+    },
+    "jsx": "react-jsx"
+  }
+}

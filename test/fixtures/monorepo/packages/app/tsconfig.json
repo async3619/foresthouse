@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@forest/shared": ["../shared/src/index.ts"],
+      "@forest/ui-panel": ["../ui/src/components/SharedPanel.tsx"]
+    },
+    "jsx": "react-jsx"
+  }
+}
