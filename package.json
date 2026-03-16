@@ -59,6 +59,7 @@
   "dependencies": {
     "cac": "^7.0.0",
     "oxc-parser": "0.119.0",
+    "oxc-resolver": "^11.19.1",
     "typescript": "5.9.3"
   },
   "devDependencies": {

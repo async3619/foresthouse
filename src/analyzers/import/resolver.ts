@@ -1,5 +1,6 @@
 import { builtinModules } from 'node:module'
 import path from 'node:path'
+import type { ResolverFactory } from 'oxc-resolver'
 import ts from 'typescript'
 
 import type { DependencyEdge } from '../../types/dependency-edge.js'
@@ -23,6 +24,7 @@ export interface ResolveDependencyOptions {
   readonly expandWorkspaces: boolean
   readonly projectOnly: boolean
   readonly getConfigForFile: (filePath: string) => ResolverConfigContext
+  readonly getResolverForFile: (filePath: string) => ResolverFactory
 }
 
 export function resolveDependency(
@@ -36,6 +38,16 @@ export function resolveDependency(
   }
 
   const containingConfig = options.getConfigForFile(containingFile)
+  const oxcResolution = resolveWithOxc(
+    reference,
+    specifier,
+    containingFile,
+    options,
+  )
+  if (oxcResolution !== undefined) {
+    return oxcResolution
+  }
+
   const host = createResolutionHost(containingConfig, options.cwd)
   const resolution = ts.resolveModuleName(
     specifier,
@@ -80,6 +92,31 @@ export function resolveDependency(
   return createEdge(reference, 'missing', specifier)
 }
 
+function resolveWithOxc(
+  reference: ModuleReference,
+  specifier: string,
+  containingFile: string,
+  options: ResolveDependencyOptions,
+): DependencyEdge | undefined {
+  try {
+    const result = options
+      .getResolverForFile(containingFile)
+      .resolveFileSync(containingFile, specifier)
+
+    if (result.builtin !== undefined) {
+      return createEdge(reference, 'builtin', result.builtin.resolved)
+    }
+
+    if (result.path !== undefined) {
+      return classifyResolvedPath(reference, specifier, result.path, options)
+    }
+  } catch {
+    return undefined
+  }
+
+  return undefined
+}
+
 function createEdge(
   reference: ModuleReference,
   kind: DependencyKind,
@@ -122,6 +159,33 @@ function resolveRealPath(resolvedPath: string): string | undefined {
   } catch {
     return undefined
   }
+}
+
+function classifyResolvedPath(
+  reference: ModuleReference,
+  specifier: string,
+  resolvedPathValue: string,
+  options: ResolveDependencyOptions,
+): DependencyEdge {
+  const resolvedPath = normalizeFilePath(resolvedPathValue)
+  const realPath = resolveRealPath(resolvedPath)
+  const sourcePath = pickSourcePath(resolvedPath, realPath)
+
+  if (sourcePath !== undefined) {
+    const boundary = classifyBoundary(specifier, sourcePath, options)
+    if (boundary !== undefined) {
+      return createEdge(reference, 'boundary', sourcePath, boundary)
+    }
+
+    if (
+      !isInsideNodeModules(sourcePath) ||
+      (realPath !== undefined && !isInsideNodeModules(realPath))
+    ) {
+      return createEdge(reference, 'source', sourcePath)
+    }
+  }
+
+  return createEdge(reference, 'external', specifier)
 }
 
 function pickSourcePath(

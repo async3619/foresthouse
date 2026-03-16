@@ -28,6 +28,8 @@ export interface FileAnalysis {
   readonly filePath: string
   readonly importsByLocalName: Map<string, ImportBinding>
   readonly exportsByName: Map<string, string>
+  readonly reExportBindingsByName: Map<string, ImportBinding>
+  readonly exportAllBindings: readonly ImportBinding[]
   readonly entryUsages: readonly PendingReactUsageEntry[]
   readonly symbolsById: Map<string, PendingReactUsageNode>
   readonly symbolsByName: Map<string, PendingReactUsageNode>
@@ -48,6 +50,8 @@ export function analyzeReactFile(
 
   const importsByLocalName = new Map<string, ImportBinding>()
   const exportsByName = new Map<string, string>()
+  const reExportBindingsByName = new Map<string, ImportBinding>()
+  const exportAllBindings: ImportBinding[] = []
   const directEntryUsages = includeNestedRenderEntries
     ? collectEntryUsages(program, filePath, sourceText)
     : []
@@ -59,6 +63,8 @@ export function analyzeReactFile(
       symbolsByName,
       importsByLocalName,
       exportsByName,
+      reExportBindingsByName,
+      exportAllBindings,
     )
   })
 
@@ -77,6 +83,8 @@ export function analyzeReactFile(
     filePath,
     importsByLocalName,
     exportsByName,
+    reExportBindingsByName,
+    exportAllBindings,
     entryUsages,
     symbolsById: new Map(
       [...symbolsByName.values()].map((symbol) => [symbol.id, symbol]),

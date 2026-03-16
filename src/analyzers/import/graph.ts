@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { ResolverFactory } from 'oxc-resolver'
 import type ts from 'typescript'
 
 import type { SourceModuleNode } from '../../types/source-module-node.js'
@@ -31,6 +32,7 @@ class DependencyGraphBuilder {
   >()
   private readonly programCache = new Map<string, ts.Program>()
   private readonly checkerCache = new Map<string, ts.TypeChecker>()
+  private readonly resolverCache = new Map<string, ResolverFactory>()
 
   constructor(
     private readonly entryPath: string,
@@ -70,6 +72,7 @@ class DependencyGraphBuilder {
         expandWorkspaces: this.options.expandWorkspaces,
         projectOnly: this.options.projectOnly,
         getConfigForFile: (targetPath) => this.getConfigForFile(targetPath),
+        getResolverForFile: (targetPath) => this.getResolverForFile(targetPath),
         ...(this.options.entryConfigPath === undefined
           ? {}
           : { entryConfigPath: this.options.entryConfigPath }),
@@ -145,5 +148,35 @@ class DependencyGraphBuilder {
     config: import('./resolver.js').ResolverConfigContext,
   ): string {
     return config.path ?? `default:${path.dirname(filePath)}`
+  }
+
+  private getResolverForFile(filePath: string): ResolverFactory {
+    const config = this.getConfigForFile(filePath)
+    const cacheKey = this.getProgramCacheKey(filePath, config)
+    const cached = this.resolverCache.get(cacheKey)
+    if (cached !== undefined) {
+      return cached
+    }
+
+    const resolver = new ResolverFactory({
+      builtinModules: true,
+      conditionNames: ['import', 'require', 'default'],
+      extensions: [
+        '.ts',
+        '.tsx',
+        '.js',
+        '.jsx',
+        '.mts',
+        '.cts',
+        '.mjs',
+        '.cjs',
+        '.json',
+      ],
+      mainFields: ['types', 'module', 'main'],
+      tsconfig:
+        config.path === undefined ? 'auto' : { configFile: config.path },
+    })
+    this.resolverCache.set(cacheKey, resolver)
+    return resolver
   }
 }

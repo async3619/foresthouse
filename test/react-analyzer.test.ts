@@ -340,6 +340,32 @@ describe('analyzeReactUsage', () => {
     })
   })
 
+  it('resolves hooks that are re-exported through export-all barrels', () => {
+    const graph = analyzeReactUsage('src/reexported-hook-entry.tsx', {
+      cwd: fixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+      filter: 'hook',
+    })
+    const jsonTree = graphToSerializableReactTree(graph, {
+      filter: 'hook',
+    })
+
+    expect(output).toContain(
+      'useLibraryHook() [hook] (src/reexported-hooks/useLibraryHook.ts)',
+    )
+    expect(jsonTree).toMatchObject({
+      roots: [
+        expect.objectContaining({
+          name: 'useLibraryHook',
+          filePath: 'src/reexported-hooks/useLibraryHook.ts',
+        }),
+      ],
+    })
+  })
+
   it('includes sibling workspace React components and hooks by default', () => {
     const graph = analyzeReactUsage('src/main.tsx', {
       cwd: monorepoFixtureDirectory,
