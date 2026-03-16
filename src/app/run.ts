@@ -16,7 +16,7 @@ class CliApplication {
   private createCommand(): {
     run(): void
   } {
-    if (this.options.react !== undefined) {
+    if (this.options.command === 'react') {
       return new ReactCommand(this.options)
     }
 

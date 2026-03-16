@@ -1,11 +1,21 @@
 import type { ReactUsageFilter } from '../types/react-usage-filter.js'
 
-export interface CliOptions {
+interface BaseCliOptions {
   readonly entryFile: string
   readonly cwd: string | undefined
   readonly configPath: string | undefined
+  readonly json: boolean
+}
+
+export interface ImportCliOptions extends BaseCliOptions {
+  readonly command: 'import'
   readonly includeExternals: boolean
   readonly omitUnused: boolean
-  readonly json: boolean
-  readonly react: ReactUsageFilter | undefined
 }
+
+export interface ReactCliOptions extends BaseCliOptions {
+  readonly command: 'react'
+  readonly filter: ReactUsageFilter
+}
+
+export type CliOptions = ImportCliOptions | ReactCliOptions

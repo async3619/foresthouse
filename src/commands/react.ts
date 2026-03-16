@@ -1,11 +1,15 @@
 import { analyzeReactUsage } from '../analyzers/react/index.js'
+import type { ReactCliOptions } from '../app/args.js'
 import { printReactUsageTree } from '../output/ascii/react.js'
 import { graphToSerializableReactTree } from '../output/json/react.js'
 import type { ReactUsageFilter } from '../types/react-usage-filter.js'
 import type { ReactUsageGraph } from '../types/react-usage-graph.js'
 import { BaseCommand } from './base.js'
 
-export class ReactCommand extends BaseCommand<ReactUsageGraph> {
+export class ReactCommand extends BaseCommand<
+  ReactUsageGraph,
+  ReactCliOptions
+> {
   protected analyze(): ReactUsageGraph {
     return analyzeReactUsage(this.options.entryFile, this.getAnalyzeOptions())
   }
@@ -24,6 +28,6 @@ export class ReactCommand extends BaseCommand<ReactUsageGraph> {
   }
 
   private getFilter(): ReactUsageFilter {
-    return this.options.react ?? 'all'
+    return this.options.filter
   }
 }

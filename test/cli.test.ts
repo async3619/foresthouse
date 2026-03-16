@@ -24,8 +24,9 @@ describe('main', () => {
     process.exitCode = undefined
   })
 
-  it('passes parsed options to the CLI runner', () => {
+  it('passes parsed import options to the CLI runner', () => {
     main('1.2.3', [
+      'import',
       'src/main.tsx',
       '--cwd',
       'test/fixtures/react-mode',
@@ -34,29 +35,67 @@ describe('main', () => {
       '--include-externals',
       '--no-unused',
       '--json',
-      '--react=hook',
     ])
 
     expect(runCli).toHaveBeenCalledWith({
+      command: 'import',
       entryFile: 'src/main.tsx',
       cwd: 'test/fixtures/react-mode',
       configPath: 'tsconfig.json',
       includeExternals: true,
       omitUnused: true,
       json: true,
-      react: 'hook',
     })
   })
 
-  it('treats --react without a value as all react usages', () => {
-    main('1.2.3', ['src/main.tsx', '--react'])
+  it('supports import --entry', () => {
+    main('1.2.3', ['import', '--entry', 'src/main.tsx'])
 
-    expect(runCli).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entryFile: 'src/main.tsx',
-        react: 'all',
-      }),
-    )
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'import',
+      entryFile: 'src/main.tsx',
+      cwd: undefined,
+      configPath: undefined,
+      includeExternals: false,
+      omitUnused: false,
+      json: false,
+    })
+  })
+
+  it('passes parsed react options to the CLI runner', () => {
+    main('1.2.3', [
+      'react',
+      'src/main.tsx',
+      '--cwd',
+      'test/fixtures/react-mode',
+      '--config',
+      'tsconfig.json',
+      '--json',
+      '--filter',
+      'hook',
+    ])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'react',
+      entryFile: 'src/main.tsx',
+      cwd: 'test/fixtures/react-mode',
+      configPath: 'tsconfig.json',
+      json: true,
+      filter: 'hook',
+    })
+  })
+
+  it('uses all react usages by default', () => {
+    main('1.2.3', ['react', 'src/main.tsx'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'react',
+      entryFile: 'src/main.tsx',
+      cwd: undefined,
+      configPath: undefined,
+      json: false,
+      filter: 'all',
+    })
   })
 
   it('prints help through the CLI framework', () => {
@@ -65,9 +104,19 @@ describe('main', () => {
     expect(runCli).not.toHaveBeenCalled()
     expect(consoleInfo).toHaveBeenCalled()
     expect(getConsoleOutput(consoleInfo)).toContain('Usage:')
-    expect(getConsoleOutput(consoleInfo)).toContain(
-      '$ foresthouse <entry-file>',
-    )
+    expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse import')
+    expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse react')
+    expect(process.exitCode).toBeUndefined()
+  })
+
+  it('prints help when no command is provided', () => {
+    main('1.2.3', [])
+
+    expect(runCli).not.toHaveBeenCalled()
+    expect(consoleInfo).toHaveBeenCalled()
+    expect(getConsoleOutput(consoleInfo)).toContain('Usage:')
+    expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse import')
+    expect(getConsoleOutput(consoleInfo)).toContain('$ foresthouse react')
     expect(process.exitCode).toBeUndefined()
   })
 
@@ -80,7 +129,7 @@ describe('main', () => {
   })
 
   it('reports unknown options as errors', () => {
-    main('1.2.3', ['src/main.ts', '--wat'])
+    main('1.2.3', ['import', 'src/main.ts', '--wat'])
 
     expect(runCli).not.toHaveBeenCalled()
     expect(stderrWrite).toHaveBeenCalledWith(
@@ -90,7 +139,7 @@ describe('main', () => {
   })
 
   it('reports missing option values as errors', () => {
-    main('1.2.3', ['src/main.ts', '--cwd'])
+    main('1.2.3', ['import', 'src/main.ts', '--cwd'])
 
     expect(runCli).not.toHaveBeenCalled()
     expect(stderrWrite).toHaveBeenCalledWith(
@@ -99,12 +148,52 @@ describe('main', () => {
     expect(process.exitCode).toBe(1)
   })
 
-  it('reports invalid react filter values as errors', () => {
-    main('1.2.3', ['src/main.tsx', '--react=widget'])
+  it('reports a missing import entry', () => {
+    main('1.2.3', ['import'])
 
     expect(runCli).not.toHaveBeenCalled()
     expect(stderrWrite).toHaveBeenCalledWith(
-      'foresthouse: Unknown React mode: widget\n',
+      'foresthouse: Missing import entry file. Use `foresthouse import <entry-file>` or `foresthouse import --entry <path>`.\n',
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('reports conflicting import entries', () => {
+    main('1.2.3', ['import', 'src/main.ts', '--entry', 'src/app.ts'])
+
+    expect(runCli).not.toHaveBeenCalled()
+    expect(stderrWrite).toHaveBeenCalledWith(
+      'foresthouse: Provide the import entry only once, either as `foresthouse import <entry-file>` or `foresthouse import --entry <path>`.\n',
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('reports invalid react filter values as errors', () => {
+    main('1.2.3', ['react', 'src/main.tsx', '--filter', 'widget'])
+
+    expect(runCli).not.toHaveBeenCalled()
+    expect(stderrWrite).toHaveBeenCalledWith(
+      'foresthouse: Unknown React filter: widget\n',
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('rejects the removed --react flag', () => {
+    main('1.2.3', ['--react', 'src/main.tsx'])
+
+    expect(runCli).not.toHaveBeenCalled()
+    expect(stderrWrite).toHaveBeenCalledWith(
+      'foresthouse: Unknown option `--react`\n',
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('rejects the removed implicit import command form', () => {
+    main('1.2.3', ['src/main.tsx'])
+
+    expect(runCli).not.toHaveBeenCalled()
+    expect(stderrWrite).toHaveBeenCalledWith(
+      'foresthouse: Unknown command `src/main.tsx`\n',
     )
     expect(process.exitCode).toBe(1)
   })

@@ -18,7 +18,7 @@ The CLI currently prints plain ASCII trees only. We want to add terminal color t
 - Apply color only to human-readable ASCII output.
 - Keep `--json` output unchanged.
 - Render `(unused)` in orange anywhere it appears in the ASCII tree.
-- In `--react` mode, use one color for component nodes and another color for hook nodes.
+- In the `react` subcommand output, use one color for component nodes and another color for hook nodes.
 - Keep the tree structure characters (`├─`, `└─`, `│`) readable and avoid reducing contrast for file paths.
 - Fall back to plain text when color is unavailable or disabled.
 
