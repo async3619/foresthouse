@@ -1,3 +1,9 @@
+## [1.0.0-dev.12](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.11...v1.0.0-dev.12) (2026-03-16)
+
+### Features
+
+* improve monorepo workspace traversal ([#33](https://github.com/async3619/foresthouse/issues/33)) ([35b13ce](https://github.com/async3619/foresthouse/commit/35b13ce62767624237ace8d3dffe91a2d46661d5))
+
 ## [1.0.0-dev.11](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.10...v1.0.0-dev.11) (2026-03-16)
 
 ### Bug Fixes
