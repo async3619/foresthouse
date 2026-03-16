@@ -8,7 +8,7 @@ import type { ReactSymbolKind } from '../../types/react-symbol-kind.js'
 import type { ImportBinding } from './bindings.js'
 import { collectImportsAndExports } from './bindings.js'
 import type { PendingReactUsageEntry } from './entries.js'
-import { collectEntryUsages } from './entries.js'
+import { collectEntryUsages, createReactUsageLocation } from './entries.js'
 import { collectTopLevelReactSymbols } from './symbols.js'
 import { analyzeSymbolUsages } from './usage.js'
 
@@ -17,6 +17,7 @@ export interface PendingReactUsageNode {
   readonly name: string
   readonly kind: ReactSymbolKind
   readonly filePath: string
+  readonly declarationOffset: number
   readonly declaration: OxcFunction | ArrowFunctionExpression
   readonly exportNames: Set<string>
   readonly componentReferences: Set<string>
@@ -47,12 +48,9 @@ export function analyzeReactFile(
 
   const importsByLocalName = new Map<string, ImportBinding>()
   const exportsByName = new Map<string, string>()
-  const entryUsages = collectEntryUsages(
-    program,
-    filePath,
-    sourceText,
-    includeNestedRenderEntries,
-  )
+  const directEntryUsages = includeNestedRenderEntries
+    ? collectEntryUsages(program, filePath, sourceText)
+    : []
 
   program.body.forEach((statement) => {
     collectImportsAndExports(
@@ -68,6 +66,13 @@ export function analyzeReactFile(
     analyzeSymbolUsages(symbol)
   })
 
+  const entryUsages =
+    directEntryUsages.length > 0
+      ? directEntryUsages
+      : includeNestedRenderEntries
+        ? collectComponentDeclarationEntryUsages(symbolsByName, sourceText)
+        : []
+
   return {
     filePath,
     importsByLocalName,
@@ -78,4 +83,41 @@ export function analyzeReactFile(
     ),
     symbolsByName,
   }
+}
+
+function collectComponentDeclarationEntryUsages(
+  symbolsByName: ReadonlyMap<string, PendingReactUsageNode>,
+  sourceText: string,
+): PendingReactUsageEntry[] {
+  const componentSymbols = [...symbolsByName.values()].filter(
+    (symbol) => symbol.kind === 'component',
+  )
+  if (componentSymbols.length === 0) {
+    return []
+  }
+
+  const exportedComponentSymbols = componentSymbols.filter(
+    (symbol) => symbol.exportNames.size > 0,
+  )
+  const fallbackSymbols =
+    exportedComponentSymbols.length > 0
+      ? exportedComponentSymbols
+      : componentSymbols
+
+  return fallbackSymbols
+    .sort((left, right) => {
+      return (
+        left.declarationOffset - right.declarationOffset ||
+        left.name.localeCompare(right.name)
+      )
+    })
+    .map((symbol) => ({
+      referenceName: symbol.name,
+      kind: 'component',
+      location: createReactUsageLocation(
+        symbol.filePath,
+        sourceText,
+        symbol.declarationOffset,
+      ),
+    }))
 }
