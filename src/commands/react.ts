@@ -1,7 +1,8 @@
 import { analyzeReactUsage } from '../analyzers/react/index.js'
 import { printReactUsageTree } from '../output/ascii/react.js'
 import { graphToSerializableReactTree } from '../output/json/react.js'
-import type { ReactUsageFilter, ReactUsageGraph } from '../types.js'
+import type { ReactUsageFilter } from '../types/react-usage-filter.js'
+import type { ReactUsageGraph } from '../types/react-usage-graph.js'
 import { BaseCommand } from './base.js'
 
 export class ReactCommand extends BaseCommand<ReactUsageGraph> {

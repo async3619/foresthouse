@@ -10,7 +10,7 @@ import type {
   ReactUsageEntry,
   ReactUsageGraph,
   ReactUsageNode,
-} from '../../types.js'
+} from '../../types/index.js'
 import { toDisplayPath } from '../../utils/to-display-path.js'
 
 export function printReactUsageTree(

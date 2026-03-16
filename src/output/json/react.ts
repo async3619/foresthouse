@@ -7,13 +7,15 @@ import type {
   ReactUsageEntry,
   ReactUsageFilter,
   ReactUsageGraph,
-} from '../../types.js'
+} from '../../types/index.js'
 import { toDisplayPath } from '../../utils/to-display-path.js'
 
 interface SerializedReactUsageNode {
   readonly id: string
   readonly name: string
-  readonly symbolKind: import('../../types.js').ReactSymbolKind | 'circular'
+  readonly symbolKind:
+    | import('../../types/react-symbol-kind.js').ReactSymbolKind
+    | 'circular'
   readonly filePath: string
   readonly exportNames: readonly string[]
   readonly usages: readonly SerializedReactUsageEdge[]
@@ -28,7 +30,7 @@ interface SerializedReactUsageEntry {
 }
 
 interface SerializedReactUsageEdge {
-  readonly kind: import('../../types.js').ReactUsageEdge['kind']
+  readonly kind: import('../../types/react-usage-edge.js').ReactUsageEdge['kind']
   readonly targetId: string
   readonly node: SerializedReactUsageNode
 }

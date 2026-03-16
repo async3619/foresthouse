@@ -1,6 +1,7 @@
 import path from 'node:path'
 
-import type { AnalyzeOptions, DependencyGraph } from '../../types.js'
+import type { AnalyzeOptions } from '../../types/analyze-options.js'
+import type { DependencyGraph } from '../../types/dependency-graph.js'
 import { loadCompilerOptions } from '../../typescript/config.js'
 import { BaseAnalyzer } from '../base.js'
 import { resolveExistingPath } from './entry.js'

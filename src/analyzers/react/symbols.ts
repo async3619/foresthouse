@@ -6,7 +6,7 @@ import type {
   VariableDeclarator,
 } from 'oxc-parser'
 
-import type { ReactSymbolKind } from '../../types.js'
+import type { ReactSymbolKind } from '../../types/react-symbol-kind.js'
 import type { PendingReactUsageNode } from './file.js'
 import { classifyReactSymbol } from './walk.js'
 

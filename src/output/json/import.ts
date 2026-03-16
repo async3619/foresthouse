@@ -1,4 +1,4 @@
-import type { DependencyGraph } from '../../types.js'
+import type { DependencyGraph } from '../../types/dependency-graph.js'
 import { toDisplayPath } from '../../utils/to-display-path.js'
 
 export function graphToSerializableTree(

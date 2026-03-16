@@ -78,7 +78,7 @@ export function isNode(value: unknown): value is Node {
 export function classifyReactSymbol(
   name: string,
   declaration: ArrowFunctionExpression | import('oxc-parser').Function,
-): import('../../types.js').ReactSymbolKind | undefined {
+): import('../../types/react-symbol-kind.js').ReactSymbolKind | undefined {
   if (isHookName(name)) {
     return 'hook'
   }

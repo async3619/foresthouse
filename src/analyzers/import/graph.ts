@@ -1,6 +1,6 @@
 import type ts from 'typescript'
 
-import type { SourceModuleNode } from '../../types.js'
+import type { SourceModuleNode } from '../../types/source-module-node.js'
 import {
   createModuleResolutionHost,
   createProgram,

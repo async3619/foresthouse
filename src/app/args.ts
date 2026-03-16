@@ -1,6 +1,6 @@
 import process from 'node:process'
 
-import type { ReactUsageFilter } from '../types.js'
+import type { ReactUsageFilter } from '../types/react-usage-filter.js'
 
 export interface CliOptions {
   readonly entryFile: string

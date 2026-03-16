@@ -1,7 +1,8 @@
 import type { Node, Program, Statement } from 'oxc-parser'
 import { visitorKeys } from 'oxc-parser'
 
-import type { ReactSymbolKind, ReactUsageLocation } from '../../types.js'
+import type { ReactSymbolKind } from '../../types/react-symbol-kind.js'
+import type { ReactUsageLocation } from '../../types/react-usage-location.js'
 import {
   FUNCTION_NODE_TYPES,
   getComponentReferenceName,

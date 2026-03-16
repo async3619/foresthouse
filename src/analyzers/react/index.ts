@@ -9,7 +9,7 @@ import type {
   ReactUsageEntry,
   ReactUsageGraph,
   ReactUsageNode,
-} from '../../types.js'
+} from '../../types/index.js'
 import { isSourceCodeFile } from '../../utils/is-source-code-file.js'
 import { BaseAnalyzer } from '../base.js'
 import { analyzeDependencies } from '../import/index.js'

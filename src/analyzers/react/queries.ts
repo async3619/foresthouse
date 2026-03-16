@@ -4,7 +4,7 @@ import type {
   ReactUsageFilter,
   ReactUsageGraph,
   ReactUsageNode,
-} from '../../types.js'
+} from '../../types/index.js'
 import { compareReactNodeIds } from './references.js'
 
 export function getReactUsageEntries(

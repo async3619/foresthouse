@@ -27,4 +27,4 @@ export type {
   ReactUsageNode,
   ReferenceKind,
   SourceModuleNode,
-} from './types.js'
+} from './types/index.js'

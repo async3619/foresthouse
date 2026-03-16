@@ -4,7 +4,7 @@ import type {
   Program,
 } from 'oxc-parser'
 
-import type { ReactSymbolKind } from '../../types.js'
+import type { ReactSymbolKind } from '../../types/react-symbol-kind.js'
 import type { ImportBinding } from './bindings.js'
 import { collectImportsAndExports } from './bindings.js'
 import type { PendingReactUsageEntry } from './entries.js'

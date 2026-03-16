@@ -1,4 +1,6 @@
-import type { ReactSymbolKind, ReactUsageNode } from '../../types.js'
+import type { ReactSymbolKind } from '../../types/react-symbol-kind.js'
+import type { ReactUsageEntry } from '../../types/react-usage-entry.js'
+import type { ReactUsageNode } from '../../types/react-usage-node.js'
 import type { ImportBinding } from './bindings.js'
 import type { FileAnalysis } from './file.js'
 import { isHookName } from './walk.js'
@@ -109,8 +111,8 @@ export function compareReactNodeIds(
 }
 
 export function compareReactUsageEntries(
-  left: import('../../types.js').ReactUsageEntry,
-  right: import('../../types.js').ReactUsageEntry,
+  left: ReactUsageEntry,
+  right: ReactUsageEntry,
   nodes: ReadonlyMap<string, ReactUsageNode>,
 ): number {
   return (

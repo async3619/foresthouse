@@ -1,5 +1,5 @@
 import type { CliOptions } from '../app/args.js'
-import type { AnalyzeOptions } from '../types.js'
+import type { AnalyzeOptions } from '../types/analyze-options.js'
 
 export abstract class BaseCommand<TGraph> {
   constructor(protected readonly options: CliOptions) {}

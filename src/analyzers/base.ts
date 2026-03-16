@@ -1,4 +1,4 @@
-import type { AnalyzeOptions } from '../types.js'
+import type { AnalyzeOptions } from '../types/analyze-options.js'
 
 export abstract class BaseAnalyzer<TGraph> {
   constructor(

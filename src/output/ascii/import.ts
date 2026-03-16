@@ -3,7 +3,7 @@ import type {
   DependencyEdge,
   DependencyGraph,
   PrintTreeOptions,
-} from '../../types.js'
+} from '../../types/index.js'
 import { toDisplayPath } from '../../utils/to-display-path.js'
 
 export function printDependencyTree(

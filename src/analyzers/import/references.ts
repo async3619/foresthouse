@@ -1,6 +1,6 @@
 import ts from 'typescript'
 
-import type { ReferenceKind } from '../../types.js'
+import type { ReferenceKind } from '../../types/reference-kind.js'
 import { collectUnusedImports } from './unused.js'
 
 export interface ModuleReference {
