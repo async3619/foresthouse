@@ -1,6 +1,8 @@
 import type {
-  ArrowFunctionExpression,
-  Function as OxcFunction,
+  Expression,
+  FunctionBody,
+  JSXElement,
+  JSXFragment,
   Program,
 } from 'oxc-parser'
 
@@ -9,7 +11,10 @@ import type { ImportBinding } from './bindings.js'
 import { collectImportsAndExports } from './bindings.js'
 import type { PendingReactUsageEntry } from './entries.js'
 import { collectEntryUsages, createReactUsageLocation } from './entries.js'
-import { collectTopLevelReactSymbols } from './symbols.js'
+import {
+  collectTopLevelDynamicComponentCandidates,
+  collectTopLevelReactSymbols,
+} from './symbols.js'
 import { analyzeSymbolUsages } from './usage.js'
 
 export interface PendingReactUsageNode {
@@ -18,7 +23,7 @@ export interface PendingReactUsageNode {
   readonly kind: ReactSymbolKind
   readonly filePath: string
   readonly declarationOffset: number
-  readonly declaration: OxcFunction | ArrowFunctionExpression
+  readonly analysisRoot: FunctionBody | Expression | JSXFragment | JSXElement
   readonly exportNames: Set<string>
   readonly componentReferences: Set<string>
   readonly hookReferences: Set<string>
@@ -32,6 +37,8 @@ export interface FileAnalysis {
   readonly reExportBindingsByName: Map<string, ImportBinding>
   readonly exportAllBindings: readonly ImportBinding[]
   readonly entryUsages: readonly PendingReactUsageEntry[]
+  readonly allSymbolsById: Map<string, PendingReactUsageNode>
+  readonly allSymbolsByName: Map<string, PendingReactUsageNode>
   readonly symbolsById: Map<string, PendingReactUsageNode>
   readonly symbolsByName: Map<string, PendingReactUsageNode>
 }
@@ -45,10 +52,27 @@ export function analyzeReactFile(
   includeBuiltins: boolean,
 ): FileAnalysis {
   const symbolsByName = new Map<string, PendingReactUsageNode>()
+  const dynamicComponentCandidatesByName = new Map<
+    string,
+    PendingReactUsageNode
+  >()
 
   program.body.forEach((statement) => {
     collectTopLevelReactSymbols(statement, filePath, symbolsByName)
   })
+  program.body.forEach((statement) => {
+    collectTopLevelDynamicComponentCandidates(
+      statement,
+      filePath,
+      symbolsByName,
+      dynamicComponentCandidatesByName,
+    )
+  })
+
+  const allSymbolsByName = new Map<string, PendingReactUsageNode>([
+    ...dynamicComponentCandidatesByName,
+    ...symbolsByName,
+  ])
 
   const importsByLocalName = new Map<string, ImportBinding>()
   const exportsByName = new Map<string, string>()
@@ -62,7 +86,7 @@ export function analyzeReactFile(
     collectImportsAndExports(
       statement,
       sourceDependencies,
-      symbolsByName,
+      allSymbolsByName,
       importsByLocalName,
       exportsByName,
       reExportBindingsByName,
@@ -70,9 +94,13 @@ export function analyzeReactFile(
     )
   })
 
-  symbolsByName.forEach((symbol) => {
+  allSymbolsByName.forEach((symbol) => {
     analyzeSymbolUsages(symbol, includeBuiltins)
   })
+
+  const allSymbolsById = new Map(
+    [...allSymbolsByName.values()].map((symbol) => [symbol.id, symbol]),
+  )
 
   const entryUsages =
     directEntryUsages.length > 0
@@ -88,6 +116,8 @@ export function analyzeReactFile(
     reExportBindingsByName,
     exportAllBindings,
     entryUsages,
+    allSymbolsById,
+    allSymbolsByName,
     symbolsById: new Map(
       [...symbolsByName.values()].map((symbol) => [symbol.id, symbol]),
     ),

@@ -193,6 +193,124 @@ describe('analyzeReactUsage', () => {
     })
   })
 
+  it('includes CSS-in-JS generated components in ASCII and JSON output', () => {
+    const graph = analyzeReactUsage('src/styled-entry.tsx', {
+      cwd: fixtureDirectory,
+      includeBuiltins: true,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+    })
+    const jsonTree = graphToSerializableReactTree(graph)
+
+    expect(output).toContain(
+      '<StyledEntry /> [component] (src/styled-entry.tsx)',
+    )
+    expect(output).toContain('<Section /> [component] (src/styled-entry.tsx)')
+    expect(output).toContain('<Button /> [component] (src/styled-entry.tsx)')
+    expect(output).toContain('<Card /> [component] (src/styled-entry.tsx)')
+    expect(output).toContain(
+      '<LinkButton /> [component] (src/styled-entry.tsx)',
+    )
+    expect(output).toContain('<MemoLink /> [component] (src/styled-entry.tsx)')
+    expect(output).toContain(
+      '<BaseCard /> [component] (src/components/BaseCard.tsx)',
+    )
+    expect(output).toContain('<Link /> [component] (src/components/Link.tsx)')
+    expect(output).toContain('<div> [builtin] (html)')
+    expect(output).toContain('<button> [builtin] (html)')
+
+    expect(jsonTree).toMatchObject({
+      entries: [
+        expect.objectContaining({
+          referenceName: 'StyledEntry',
+          node: expect.objectContaining({
+            name: 'StyledEntry',
+            symbolKind: 'component',
+          }),
+        }),
+      ],
+      roots: [
+        expect.objectContaining({
+          name: 'StyledEntry',
+          usages: expect.arrayContaining([
+            expect.objectContaining({
+              node: expect.objectContaining({
+                name: 'Section',
+                symbolKind: 'component',
+                usages: expect.arrayContaining([
+                  expect.objectContaining({
+                    node: expect.objectContaining({
+                      name: 'div',
+                      symbolKind: 'builtin',
+                    }),
+                  }),
+                ]),
+              }),
+            }),
+            expect.objectContaining({
+              node: expect.objectContaining({
+                name: 'Button',
+                symbolKind: 'component',
+                usages: expect.arrayContaining([
+                  expect.objectContaining({
+                    node: expect.objectContaining({
+                      name: 'button',
+                      symbolKind: 'builtin',
+                    }),
+                  }),
+                ]),
+              }),
+            }),
+            expect.objectContaining({
+              node: expect.objectContaining({
+                name: 'Card',
+                symbolKind: 'component',
+                usages: expect.arrayContaining([
+                  expect.objectContaining({
+                    node: expect.objectContaining({
+                      name: 'BaseCard',
+                      symbolKind: 'component',
+                    }),
+                  }),
+                ]),
+              }),
+            }),
+            expect.objectContaining({
+              node: expect.objectContaining({
+                name: 'LinkButton',
+                symbolKind: 'component',
+                usages: expect.arrayContaining([
+                  expect.objectContaining({
+                    node: expect.objectContaining({
+                      name: 'Link',
+                      symbolKind: 'component',
+                    }),
+                  }),
+                ]),
+              }),
+            }),
+            expect.objectContaining({
+              node: expect.objectContaining({
+                name: 'MemoLink',
+                symbolKind: 'component',
+                usages: expect.arrayContaining([
+                  expect.objectContaining({
+                    node: expect.objectContaining({
+                      name: 'Link',
+                      symbolKind: 'component',
+                    }),
+                  }),
+                ]),
+              }),
+            }),
+          ]),
+        }),
+      ],
+    })
+  })
+
   it('prints multiple React entry locations when the entry file renders more than one root', () => {
     const graph = analyzeReactUsage('src/multi-entry.tsx', {
       cwd: fixtureDirectory,
