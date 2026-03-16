@@ -3,7 +3,11 @@ import process from 'node:process'
 import { cac } from 'cac'
 
 import type { ReactUsageFilter } from '../types/react-usage-filter.js'
-import type { ImportCliOptions, ReactCliOptions } from './args.js'
+import type {
+  DepsCliOptions,
+  ImportCliOptions,
+  ReactCliOptions,
+} from './args.js'
 import { runCli } from './run.js'
 
 export function main(version: string, argv = process.argv.slice(2)): void {
@@ -37,6 +41,17 @@ class CliMain {
 
   private createCli() {
     const cli = cac('foresthouse')
+
+    cli
+      .command(
+        'deps <directory>',
+        'Analyze package.json dependencies from a package directory.',
+      )
+      .usage('deps <directory> [options]')
+      .option('--json', 'Print the package tree as JSON.')
+      .action((directory: string, rawOptions: ParsedDepsCliOptions) => {
+        runCli(normalizeDepsCliOptions(directory, rawOptions))
+      })
 
     cli
       .command(
@@ -127,7 +142,11 @@ class CliMain {
       return
     }
 
-    if (firstArgument === 'import' || firstArgument === 'react') {
+    if (
+      firstArgument === 'deps' ||
+      firstArgument === 'import' ||
+      firstArgument === 'react'
+    ) {
       return
     }
 
@@ -147,6 +166,10 @@ interface ParsedBaseCliOptions {
   readonly json?: boolean
 }
 
+interface ParsedDepsCliOptions {
+  readonly json?: boolean
+}
+
 interface ParsedImportCliOptions extends ParsedBaseCliOptions {
   readonly entry?: string
   readonly includeExternals?: boolean
@@ -157,6 +180,21 @@ interface ParsedReactCliOptions extends ParsedBaseCliOptions {
   readonly filter?: string
   readonly nextjs?: boolean
   readonly builtin?: boolean
+}
+
+function normalizeDepsCliOptions(
+  directory: string,
+  options: ParsedDepsCliOptions,
+): DepsCliOptions {
+  return {
+    command: 'deps',
+    directory,
+    cwd: undefined,
+    configPath: undefined,
+    expandWorkspaces: true,
+    projectOnly: false,
+    json: options.json === true,
+  }
 }
 
 function normalizeImportCliOptions(

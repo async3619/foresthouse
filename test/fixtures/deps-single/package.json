@@ -1,0 +1,9 @@
+{
+  "name": "single-package-fixture",
+  "private": true,
+  "dependencies": {
+    "react": "^19.1.1",
+    "tsup": "^8.5.0",
+    "zod": "^3.25.0"
+  }
+}

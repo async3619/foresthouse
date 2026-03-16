@@ -1,3 +1,4 @@
+export { analyzePackageDependencies } from './analyzers/deps/index.js'
 export { analyzeDependencies } from './analyzers/import/index.js'
 export { analyzeReactUsage } from './analyzers/react/index.js'
 export {
@@ -5,8 +6,10 @@ export {
   getReactUsageEntries,
   getReactUsageRoots,
 } from './analyzers/react/queries.js'
+export { printPackageDependencyTree } from './output/ascii/deps.js'
 export { printDependencyTree } from './output/ascii/import.js'
 export { printReactUsageTree } from './output/ascii/react.js'
+export { graphToSerializablePackageTree } from './output/json/deps.js'
 export { graphToSerializableTree } from './output/json/import.js'
 export { graphToSerializableReactTree } from './output/json/react.js'
 export type { AnalyzeOptions } from './types/analyze-options.js'
@@ -14,6 +17,10 @@ export type { ColorMode } from './types/color-mode.js'
 export type { DependencyEdge } from './types/dependency-edge.js'
 export type { DependencyGraph } from './types/dependency-graph.js'
 export type { DependencyKind } from './types/dependency-kind.js'
+export type { PackageDependencyGraph } from './types/package-dependency-graph.js'
+export type { PackageDependencyNode } from './types/package-dependency-node.js'
+export type { PackageManifestDependency } from './types/package-manifest-dependency.js'
+export type { PrintPackageTreeOptions } from './types/print-package-tree-options.js'
 export type { PrintReactTreeOptions } from './types/print-react-tree-options.js'
 export type { PrintTreeOptions } from './types/print-tree-options.js'
 export type { ReactSymbolKind } from './types/react-symbol-kind.js'

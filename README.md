@@ -1,6 +1,6 @@
 # foresthouse
 
-`foresthouse` is a modern TypeScript-first Node.js CLI that starts from an entry file, follows local JavaScript and TypeScript imports, and prints the result as a dependency tree.
+`foresthouse` is a modern TypeScript-first Node.js CLI that can print source import trees, React usage trees, and package-manifest dependency trees.
 
 ## Stack
 
@@ -19,6 +19,7 @@
 - Resolves local imports, re-exports, `require()`, and string-literal dynamic `import()`
 - Honors the nearest `tsconfig.json` or `jsconfig.json`, including `baseUrl` and `paths`
 - Expands sibling workspace packages by default, including their own `tsconfig` alias rules
+- Reads `package.json` manifests to show package-level dependency trees for single packages and monorepos
 - Prints a tree by default, or JSON with `--json`
 - Colorizes ASCII output automatically when the terminal supports ANSI colors
 
@@ -29,6 +30,7 @@ corepack enable
 pnpm install
 pnpm run build
 node dist/cli.mjs import src/index.ts
+node dist/cli.mjs deps .
 ```
 
 ### Example
@@ -74,6 +76,13 @@ src/main.ts
 - `--no-workspaces`: stop at sibling workspace package boundaries instead of expanding them
 - `--project-only`: restrict traversal to the active `tsconfig.json` or `jsconfig.json` project
 - `--json`: print a JSON tree instead of ASCII output
+
+`deps` command:
+
+- `foresthouse deps <directory>`: analyze the nearest package rooted at the given directory
+- `foresthouse deps .`: analyze the current package or repository root
+- `foresthouse deps ./packages/a`: analyze a specific workspace package directory
+- `--json`: print a JSON package tree instead of ASCII output
 
 ## Development
 

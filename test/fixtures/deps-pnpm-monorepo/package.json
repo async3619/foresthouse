@@ -1,0 +1,9 @@
+{
+  "name": "deps-pnpm-monorepo-root",
+  "private": true,
+  "dependencies": {
+    "@repo/ui": "workspace:*",
+    "@repo/web": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}
