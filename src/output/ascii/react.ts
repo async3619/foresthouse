@@ -7,6 +7,7 @@ import {
   colorizeMuted,
   colorizeReactLabel,
   formatReactSymbolLabel,
+  formatReactSymbolName,
   resolveColorSupport,
 } from '../../color.js'
 import type { PrintReactTreeOptions } from '../../types/print-react-tree-options.js'
@@ -165,7 +166,7 @@ function formatReactNodeLabel(
 ): string {
   const hasAlias = referenceName !== undefined && referenceName !== node.name
   const label = hasAlias
-    ? `${colorizeReactLabel(node.name, node.kind, color)} ${colorizeMuted(
+    ? `${colorizeReactLabel(formatReactSymbolName(node.name, node.kind), node.kind, color)} ${colorizeMuted(
         `as ${referenceName}`,
         color,
       )} ${colorizeReactLabel(`[${node.kind}]`, node.kind, color)}`
