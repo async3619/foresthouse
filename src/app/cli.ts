@@ -54,6 +54,14 @@ class CliMain {
         '--include-externals',
         'Include packages and Node built-ins in the tree.',
       )
+      .option(
+        '--no-workspaces',
+        'Do not expand sibling workspace packages into source subtrees.',
+      )
+      .option(
+        '--project-only',
+        'Restrict traversal to the active tsconfig.json or jsconfig.json project.',
+      )
       .option('--no-unused', 'Omit imports that are never referenced.')
       .option('--json', 'Print the dependency tree as JSON.')
       .action(
@@ -73,6 +81,14 @@ class CliMain {
       .option(
         '--filter <mode>',
         'Limit output to `component` or `hook` usages.',
+      )
+      .option(
+        '--no-workspaces',
+        'Do not expand sibling workspace packages into source subtrees.',
+      )
+      .option(
+        '--project-only',
+        'Restrict traversal to the active tsconfig.json or jsconfig.json project.',
       )
       .option('--json', 'Print the React usage tree as JSON.')
       .action((entryFile: string, rawOptions: ParsedReactCliOptions) => {
@@ -119,6 +135,8 @@ class CliMain {
 interface ParsedBaseCliOptions {
   readonly cwd?: string
   readonly config?: string
+  readonly workspaces?: boolean
+  readonly projectOnly?: boolean
   readonly json?: boolean
 }
 
@@ -141,6 +159,8 @@ function normalizeImportCliOptions(
     entryFile: resolveImportEntryFile(entryFile, options.entry),
     cwd: options.cwd,
     configPath: options.config,
+    expandWorkspaces: options.workspaces !== false,
+    projectOnly: options.projectOnly === true,
     includeExternals: options.includeExternals === true,
     omitUnused: options.unused === false,
     json: options.json === true,
@@ -156,6 +176,8 @@ function normalizeReactCliOptions(
     entryFile,
     cwd: options.cwd,
     configPath: options.config,
+    expandWorkspaces: options.workspaces !== false,
+    projectOnly: options.projectOnly === true,
     json: options.json === true,
     filter: normalizeReactFilter(options.filter),
   }

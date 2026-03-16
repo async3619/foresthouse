@@ -1,3 +1,4 @@
+import type { DependencyEdge } from '../../types/dependency-edge.js'
 import type { DependencyGraph } from '../../types/dependency-graph.js'
 import { toDisplayPath } from '../../utils/to-display-path.js'
 
@@ -53,10 +54,10 @@ function serializeNode(
           isTypeOnly: dependency.isTypeOnly,
           unused: dependency.unused,
           kind: dependency.kind,
-          target:
-            dependency.kind === 'missing'
-              ? dependency.target
-              : toDisplayPath(dependency.target, graph.cwd),
+          ...(dependency.boundary === undefined
+            ? {}
+            : { boundary: dependency.boundary }),
+          target: serializeDependencyTarget(dependency, graph.cwd),
         }
       }
 
@@ -81,4 +82,19 @@ function serializeNode(
     kind: filePath === graph.entryId ? 'entry' : 'source',
     dependencies,
   }
+}
+
+function serializeDependencyTarget(
+  dependency: DependencyEdge,
+  cwd: string,
+): string {
+  if (dependency.kind === 'missing' || dependency.kind === 'external') {
+    return dependency.target
+  }
+
+  if (dependency.kind === 'builtin') {
+    return dependency.target
+  }
+
+  return toDisplayPath(dependency.target, cwd)
 }

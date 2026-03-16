@@ -29,11 +29,13 @@ class ImportAnalyzer extends BaseAnalyzer<DependencyGraph> {
       path.dirname(this.entryPath),
       this.options.configPath,
     )
-    const nodes = buildDependencyGraph(
-      this.entryPath,
-      compilerOptions,
-      this.cwd,
-    )
+    const nodes = buildDependencyGraph(this.entryPath, {
+      cwd: this.cwd,
+      entryCompilerOptions: compilerOptions,
+      expandWorkspaces: this.options.expandWorkspaces ?? true,
+      projectOnly: this.options.projectOnly ?? false,
+      ...(configPath === undefined ? {} : { entryConfigPath: configPath }),
+    })
 
     return {
       cwd: this.cwd,

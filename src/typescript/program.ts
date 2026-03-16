@@ -5,10 +5,10 @@ import ts from 'typescript'
 export function createProgram(
   entryFile: string,
   compilerOptions: ts.CompilerOptions,
-  cwd: string,
+  currentDirectory: string,
 ): ts.Program {
   const host = ts.createCompilerHost(compilerOptions, true)
-  host.getCurrentDirectory = () => cwd
+  host.getCurrentDirectory = () => currentDirectory
 
   if (ts.sys.realpath !== undefined) {
     host.realpath = ts.sys.realpath
@@ -33,13 +33,13 @@ export function createSourceFile(filePath: string): ts.SourceFile {
 }
 
 export function createModuleResolutionHost(
-  cwd: string,
+  currentDirectory: string,
 ): ts.ModuleResolutionHost {
   return {
     fileExists: ts.sys.fileExists,
     readFile: ts.sys.readFile,
     directoryExists: ts.sys.directoryExists,
-    getCurrentDirectory: () => cwd,
+    getCurrentDirectory: () => currentDirectory,
     getDirectories: ts.sys.getDirectories,
     ...(ts.sys.realpath === undefined ? {} : { realpath: ts.sys.realpath }),
   }

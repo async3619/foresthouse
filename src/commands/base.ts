@@ -30,6 +30,8 @@ export abstract class BaseCommand<
       ...(this.options.configPath === undefined
         ? {}
         : { configPath: this.options.configPath }),
+      expandWorkspaces: this.options.expandWorkspaces,
+      projectOnly: this.options.projectOnly,
     }
   }
 

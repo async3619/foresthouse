@@ -1,1 +1,6 @@
-export type DependencyKind = 'source' | 'external' | 'builtin' | 'missing'
+export type DependencyKind =
+  | 'source'
+  | 'external'
+  | 'builtin'
+  | 'missing'
+  | 'boundary'

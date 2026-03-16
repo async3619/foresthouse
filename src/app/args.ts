@@ -4,6 +4,8 @@ interface BaseCliOptions {
   readonly entryFile: string
   readonly cwd: string | undefined
   readonly configPath: string | undefined
+  readonly expandWorkspaces: boolean
+  readonly projectOnly: boolean
   readonly json: boolean
 }
 
