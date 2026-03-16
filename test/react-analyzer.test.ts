@@ -149,7 +149,7 @@ describe('analyzeReactUsage', () => {
     expect(output).toContain('<Panel /> [component] (src/components/Panel.tsx)')
   })
 
-  it('treats renders inside the entry component file as React entry locations', () => {
+  it('falls back to the entry component declaration when the file only renders inside that component', () => {
     const graph = analyzeReactUsage('src/entry-page.tsx', {
       cwd: fixtureDirectory,
     })
@@ -159,67 +159,79 @@ describe('analyzeReactUsage', () => {
       filter: 'component',
     })
 
-    expect(output).toContain('src/entry-page.tsx:7:7')
-    expect(output).toContain('src/entry-page.tsx:8:7')
+    expect(output).toContain('src/entry-page.tsx:4:25')
+    expect(output).toContain('<EntryPage /> [component] (src/entry-page.tsx)')
     expect(output).toContain('<Panel /> [component] (src/components/Panel.tsx)')
     expect(output).toContain(
       '<DynamicHost /> [component] (src/components/DynamicHost.tsx)',
     )
-    expect(output).not.toContain(
-      '<EntryPage /> [component] (src/entry-page.tsx)',
-    )
   })
 
-  it('treats hook calls inside the entry component file as React entry locations', () => {
+  it('includes hook usages under the entry component declaration fallback', () => {
     const graph = analyzeReactUsage('src/entry-hook-page.tsx', {
       cwd: fixtureDirectory,
     })
 
     const output = printReactUsageTree(graph, {
       color: false,
-      filter: 'hook',
     })
 
-    expect(output).toContain('src/entry-hook-page.tsx:7:3')
-    expect(output).toContain('src/entry-hook-page.tsx:8:3')
+    expect(output).toContain('src/entry-hook-page.tsx:6:25')
+    expect(output).toContain(
+      '<EntryHookPage /> [component] (src/entry-hook-page.tsx)',
+    )
+    expect(output).toContain('<Panel /> [component] (src/components/Panel.tsx)')
     expect(output).toContain('useEffect() [hook] (react)')
     expect(output).toContain('useFeature() [hook] (src/hooks/useFeature.ts)')
-    expect(output).not.toContain(
-      '<Panel /> [component] (src/components/Panel.tsx)',
-    )
   })
 
-  it('returns JSON entries for hook usages inside the entry component file', () => {
+  it('returns JSON entries for the entry component declaration fallback', () => {
     const graph = analyzeReactUsage('src/entry-hook-page.tsx', {
       cwd: fixtureDirectory,
     })
 
-    const jsonTree = graphToSerializableReactTree(graph, {
-      filter: 'hook',
-    })
+    const jsonTree = graphToSerializableReactTree(graph)
 
     expect(jsonTree).toMatchObject({
-      kind: 'react-usage',
-      entries: expect.arrayContaining([
+      entries: [
         expect.objectContaining({
           filePath: 'src/entry-hook-page.tsx',
-          line: 7,
-          column: 3,
+          line: 6,
+          column: 25,
           node: expect.objectContaining({
-            name: 'useEffect',
-            symbolKind: 'hook',
+            name: 'EntryHookPage',
+            symbolKind: 'component',
           }),
         }),
+      ],
+      roots: [
         expect.objectContaining({
-          filePath: 'src/entry-hook-page.tsx',
-          line: 8,
-          column: 3,
-          node: expect.objectContaining({
-            name: 'useFeature',
-            symbolKind: 'hook',
-          }),
+          name: 'EntryHookPage',
+          usages: expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'render',
+              node: expect.objectContaining({
+                name: 'Panel',
+                symbolKind: 'component',
+              }),
+            }),
+            expect.objectContaining({
+              kind: 'hook-call',
+              node: expect.objectContaining({
+                name: 'useEffect',
+                symbolKind: 'hook',
+              }),
+            }),
+            expect.objectContaining({
+              kind: 'hook-call',
+              node: expect.objectContaining({
+                name: 'useFeature',
+                symbolKind: 'hook',
+              }),
+            }),
+          ]),
         }),
-      ]),
+      ],
     })
   })
 
@@ -252,23 +264,35 @@ describe('analyzeReactUsage', () => {
       filter: 'component',
     })
 
-    expect(output).toContain('src/aliased-entry.tsx:4:10')
+    expect(output).toContain('src/aliased-entry.tsx:3:17')
+    expect(output).toContain(
+      '<AliasedEntry /> [component] (src/aliased-entry.tsx)',
+    )
     expect(output).toContain(
       '<OriginalButton /> as AliasButton [component] (src/components/AliasedButton.tsx)',
     )
     expect(jsonTree).toMatchObject({
       entries: [
         expect.objectContaining({
-          referenceName: 'AliasButton',
+          referenceName: 'AliasedEntry',
           node: expect.objectContaining({
-            name: 'OriginalButton',
+            name: 'AliasedEntry',
             symbolKind: 'component',
           }),
         }),
       ],
       roots: [
         expect.objectContaining({
-          name: 'OriginalButton',
+          name: 'AliasedEntry',
+          usages: [
+            expect.objectContaining({
+              referenceName: 'AliasButton',
+              node: expect.objectContaining({
+                name: 'OriginalButton',
+                symbolKind: 'component',
+              }),
+            }),
+          ],
         }),
       ],
     })
@@ -287,23 +311,23 @@ describe('analyzeReactUsage', () => {
       filter: 'hook',
     })
 
-    expect(output).toContain('src/aliased-hook-entry.tsx:4:3')
-    expect(output).toContain(
-      'useFeature() as useAliasedFeature [hook] (src/hooks/useFeature.ts)',
-    )
+    expect(output).not.toContain('src/aliased-hook-entry.tsx:')
+    expect(output).toContain('useFeature() [hook] (src/hooks/useFeature.ts)')
     expect(jsonTree).toMatchObject({
-      entries: [
-        expect.objectContaining({
-          referenceName: 'useAliasedFeature',
-          node: expect.objectContaining({
-            name: 'useFeature',
-            symbolKind: 'hook',
-          }),
-        }),
-      ],
+      entries: [],
       roots: [
         expect.objectContaining({
           name: 'useFeature',
+          usages: [
+            expect.objectContaining({
+              kind: 'hook-call',
+              referenceName: 'usePanelStateAlias',
+              node: expect.objectContaining({
+                name: 'usePanelState',
+                symbolKind: 'hook',
+              }),
+            }),
+          ],
         }),
       ],
     })

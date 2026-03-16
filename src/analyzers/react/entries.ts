@@ -21,18 +21,11 @@ export function collectEntryUsages(
   program: Program,
   filePath: string,
   sourceText: string,
-  includeNestedFunctions: boolean,
 ): PendingReactUsageEntry[] {
   const entries = new Map<string, PendingReactUsageEntry>()
 
   program.body.forEach((statement) => {
-    collectStatementEntryUsages(
-      statement,
-      filePath,
-      sourceText,
-      entries,
-      includeNestedFunctions,
-    )
+    collectStatementEntryUsages(statement, filePath, sourceText, entries)
   })
 
   return [...entries.values()].sort(comparePendingReactUsageEntries)
@@ -43,16 +36,8 @@ function collectStatementEntryUsages(
   filePath: string,
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
-  includeNestedFunctions: boolean,
 ): void {
-  collectNodeEntryUsages(
-    statement,
-    filePath,
-    sourceText,
-    entries,
-    false,
-    includeNestedFunctions,
-  )
+  collectNodeEntryUsages(statement, filePath, sourceText, entries, false)
 }
 
 function collectNodeEntryUsages(
@@ -61,9 +46,8 @@ function collectNodeEntryUsages(
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
   hasComponentAncestor: boolean,
-  includeNestedFunctions: boolean,
 ): void {
-  if (!includeNestedFunctions && FUNCTION_NODE_TYPES.has(node.type)) {
+  if (FUNCTION_NODE_TYPES.has(node.type)) {
     return
   }
 
@@ -120,7 +104,6 @@ function collectNodeEntryUsages(
       sourceText,
       entries,
       nextHasComponentAncestor,
-      includeNestedFunctions,
     )
   })
 }
@@ -131,7 +114,6 @@ function collectEntryUsageChild(
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
   hasComponentAncestor: boolean,
-  includeNestedFunctions: boolean,
 ): void {
   if (Array.isArray(value)) {
     value.forEach((entry) => {
@@ -141,7 +123,6 @@ function collectEntryUsageChild(
         sourceText,
         entries,
         hasComponentAncestor,
-        includeNestedFunctions,
       )
     })
     return
@@ -157,7 +138,6 @@ function collectEntryUsageChild(
     sourceText,
     entries,
     hasComponentAncestor,
-    includeNestedFunctions,
   )
 }
 
@@ -175,7 +155,7 @@ function addPendingReactUsageEntry(
   })
 }
 
-function createReactUsageLocation(
+export function createReactUsageLocation(
   filePath: string,
   sourceText: string,
   offset: number,

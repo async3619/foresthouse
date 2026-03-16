@@ -125,6 +125,7 @@ function createPendingSymbol(
     name,
     kind,
     filePath,
+    declarationOffset: declaration.id?.start ?? declaration.start,
     declaration,
     exportNames: new Set<string>(),
     componentReferences: new Set<string>(),
