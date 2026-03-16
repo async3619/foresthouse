@@ -27,13 +27,13 @@
 corepack enable
 pnpm install
 pnpm run build
-node dist/cli.mjs src/index.ts
+node dist/cli.mjs import src/index.ts
 ```
 
 ### Example
 
 ```bash
-node dist/cli.mjs src/main.ts --cwd test/fixtures/basic
+node dist/cli.mjs import src/main.ts --cwd test/fixtures/basic
 ```
 
 Output:
@@ -49,11 +49,22 @@ src/main.ts
 
 ### Options
 
+`import` command:
+
+- `foresthouse import <path>`: analyze an entry file by positional argument
+- `foresthouse import --entry <path>`: analyze an entry file by explicit option
 - `--cwd <path>`: working directory for resolving the entry file and config
 - `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
 - `--include-externals`: include packages and Node built-ins in the output
 - `--no-unused`: omit imports that are never referenced
-- `--react[=component|hook]`: print a React usage tree instead of the import tree
+- `--json`: print a JSON tree instead of ASCII output
+
+`react` command:
+
+- `foresthouse react <path>`: print a React usage tree from an entry file
+- `--cwd <path>`: working directory for resolving the entry file and config
+- `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
+- `--filter <component|hook>`: limit the output to a specific React symbol kind
 - `--json`: print a JSON tree instead of ASCII output
 
 ## Development

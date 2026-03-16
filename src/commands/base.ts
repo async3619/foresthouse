@@ -1,8 +1,11 @@
 import type { CliOptions } from '../app/args.js'
 import type { AnalyzeOptions } from '../types/analyze-options.js'
 
-export abstract class BaseCommand<TGraph> {
-  constructor(protected readonly options: CliOptions) {}
+export abstract class BaseCommand<
+  TGraph,
+  TOptions extends CliOptions = CliOptions,
+> {
+  constructor(protected readonly options: TOptions) {}
 
   run(): void {
     const graph = this.analyze()
