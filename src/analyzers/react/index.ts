@@ -11,6 +11,7 @@ import type {
   ReactUsageNode,
 } from '../../types.js'
 import { isSourceCodeFile } from '../../utils/is-source-code-file.js'
+import { BaseAnalyzer } from '../base.js'
 import { analyzeDependencies } from '../import/index.js'
 import { analyzeReactFile } from './file.js'
 import {
@@ -27,13 +28,8 @@ export function analyzeReactUsage(
   return new ReactAnalyzer(entryFile, options).analyze()
 }
 
-class ReactAnalyzer {
-  constructor(
-    private readonly entryFile: string,
-    private readonly options: AnalyzeOptions,
-  ) {}
-
-  analyze(): ReactUsageGraph {
+class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
+  protected doAnalyze(): ReactUsageGraph {
     const dependencyGraph = analyzeDependencies(this.entryFile, this.options)
     const fileAnalyses = this.collectFileAnalyses(dependencyGraph)
     const nodes = this.createNodes(fileAnalyses)
