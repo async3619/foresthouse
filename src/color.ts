@@ -69,7 +69,6 @@ export function formatReactSymbolName(
 ): string {
   return kind === 'component' ? `<${name} />` : `${name}()`
 }
-
 export function colorizeReactLabel(
   text: string,
   kind: ReactSymbolKind,
