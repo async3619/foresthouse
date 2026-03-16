@@ -1,3 +1,9 @@
+## [1.0.0-dev.11](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.10...v1.0.0-dev.11) (2026-03-16)
+
+### Bug Fixes
+
+* **react:** normalize react entry fallback ([#32](https://github.com/async3619/foresthouse/issues/32)) ([2e71a60](https://github.com/async3619/foresthouse/commit/2e71a602de91dc0e0e3cf5bf1a7663b52b2a30fc))
+
 ## [1.0.0-dev.10](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.9...v1.0.0-dev.10) (2026-03-16)
 
 ### Features
