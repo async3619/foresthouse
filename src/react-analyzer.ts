@@ -4,4 +4,4 @@ export {
   getReactUsageEntries,
   getReactUsageRoots,
 } from './analyzers/react/queries.js'
-export { graphToSerializableReactTree } from './serializers/react-usage-tree.js'
+export { graphToSerializableReactTree } from './output/json/react.js'

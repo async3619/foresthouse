@@ -1,6 +1,6 @@
 import { analyzeDependencies } from '../analyzers/import/index.js'
-import { printDependencyTree } from '../renderers/dependency-tree.js'
-import { graphToSerializableTree } from '../serializers/dependency-tree.js'
+import { printDependencyTree } from '../output/ascii/import.js'
+import { graphToSerializableTree } from '../output/json/import.js'
 import type { DependencyGraph } from '../types.js'
 import { BaseCommand } from './base.js'
 

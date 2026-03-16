@@ -2,16 +2,16 @@ import {
   getFilteredUsages,
   getReactUsageEntries,
   getReactUsageRoots,
-} from '../analyzers/react/queries.js'
-import { formatReactSymbolLabel, resolveColorSupport } from '../color.js'
+} from '../../analyzers/react/queries.js'
+import { formatReactSymbolLabel, resolveColorSupport } from '../../color.js'
 import type {
   PrintReactTreeOptions,
   ReactUsageEdge,
   ReactUsageEntry,
   ReactUsageGraph,
   ReactUsageNode,
-} from '../types.js'
-import { toDisplayPath } from '../utils/to-display-path.js'
+} from '../../types.js'
+import { toDisplayPath } from '../../utils/to-display-path.js'
 
 export function printReactUsageTree(
   graph: ReactUsageGraph,

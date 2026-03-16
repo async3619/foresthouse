@@ -1,1 +1,1 @@
-export { printDependencyTree } from './renderers/dependency-tree.js'
+export { printDependencyTree } from './output/ascii/import.js'

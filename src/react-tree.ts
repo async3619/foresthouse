@@ -1,1 +1,1 @@
-export { printReactUsageTree } from './renderers/react-usage-tree.js'
+export { printReactUsageTree } from './output/ascii/react.js'

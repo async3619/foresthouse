@@ -1,5 +1,5 @@
-import type { DependencyGraph } from '../types.js'
-import { toDisplayPath } from '../utils/to-display-path.js'
+import type { DependencyGraph } from '../../types.js'
+import { toDisplayPath } from '../../utils/to-display-path.js'
 
 export function graphToSerializableTree(
   graph: DependencyGraph,

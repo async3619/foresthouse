@@ -1,2 +1,2 @@
 export { analyzeDependencies } from './analyzers/import/index.js'
-export { graphToSerializableTree } from './serializers/dependency-tree.js'
+export { graphToSerializableTree } from './output/json/import.js'

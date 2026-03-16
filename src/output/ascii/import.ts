@@ -1,10 +1,10 @@
-import { colorizeUnusedMarker, resolveColorSupport } from '../color.js'
+import { colorizeUnusedMarker, resolveColorSupport } from '../../color.js'
 import type {
   DependencyEdge,
   DependencyGraph,
   PrintTreeOptions,
-} from '../types.js'
-import { toDisplayPath } from '../utils/to-display-path.js'
+} from '../../types.js'
+import { toDisplayPath } from '../../utils/to-display-path.js'
 
 export function printDependencyTree(
   graph: DependencyGraph,
