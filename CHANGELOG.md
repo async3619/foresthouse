@@ -1,3 +1,9 @@
+## [1.0.0-dev.14](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.13...v1.0.0-dev.14) (2026-03-16)
+
+### Features
+
+* add builtin HTML nodes to react command ([#42](https://github.com/async3619/foresthouse/issues/42)) ([1de9731](https://github.com/async3619/foresthouse/commit/1de973101eb37ce970f67bb823b952e2737e5312))
+
 ## [1.0.0-dev.13](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.12...v1.0.0-dev.13) (2026-03-16)
 
 ### Bug Fixes
