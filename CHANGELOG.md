@@ -1,3 +1,9 @@
+## [1.0.0-dev.15](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.14...v1.0.0-dev.15) (2026-03-16)
+
+### Features
+
+* **react:** add nextjs entry discovery ([#44](https://github.com/async3619/foresthouse/issues/44)) ([ac0e589](https://github.com/async3619/foresthouse/commit/ac0e589cb1e77dc294fd7d43aebc5839ce116b01))
+
 ## [1.0.0-dev.14](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.13...v1.0.0-dev.14) (2026-03-16)
 
 ### Features
