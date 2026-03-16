@@ -2,9 +2,9 @@ import { analyzeReactUsage } from '../analyzers/react/index.js'
 import { printReactUsageTree } from '../renderers/react-usage-tree.js'
 import { graphToSerializableReactTree } from '../serializers/react-usage-tree.js'
 import type { ReactUsageFilter, ReactUsageGraph } from '../types.js'
-import { BaseRunner } from './base.js'
+import { BaseCommand } from './base.js'
 
-export class ReactRunner extends BaseRunner<ReactUsageGraph> {
+export class ReactCommand extends BaseCommand<ReactUsageGraph> {
   protected analyze(): ReactUsageGraph {
     return analyzeReactUsage(this.options.entryFile, this.getAnalyzeOptions())
   }

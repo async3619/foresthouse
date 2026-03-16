@@ -1,5 +1,5 @@
-import { ImportRunner } from '../runners/import.js'
-import { ReactRunner } from '../runners/react.js'
+import { ImportCommand } from '../commands/import.js'
+import { ReactCommand } from '../commands/react.js'
 import type { CliOptions } from './args.js'
 
 export function runCli(options: CliOptions): void {
@@ -10,16 +10,16 @@ class CliApplication {
   constructor(private readonly options: CliOptions) {}
 
   run(): void {
-    this.createRunner().run()
+    this.createCommand().run()
   }
 
-  private createRunner(): {
+  private createCommand(): {
     run(): void
   } {
     if (this.options.react !== undefined) {
-      return new ReactRunner(this.options)
+      return new ReactCommand(this.options)
     }
 
-    return new ImportRunner(this.options)
+    return new ImportCommand(this.options)
   }
 }

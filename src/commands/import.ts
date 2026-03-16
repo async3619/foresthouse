@@ -2,9 +2,9 @@ import { analyzeDependencies } from '../analyzers/import/index.js'
 import { printDependencyTree } from '../renderers/dependency-tree.js'
 import { graphToSerializableTree } from '../serializers/dependency-tree.js'
 import type { DependencyGraph } from '../types.js'
-import { BaseRunner } from './base.js'
+import { BaseCommand } from './base.js'
 
-export class ImportRunner extends BaseRunner<DependencyGraph> {
+export class ImportCommand extends BaseCommand<DependencyGraph> {
   protected analyze(): DependencyGraph {
     return analyzeDependencies(this.options.entryFile, this.getAnalyzeOptions())
   }

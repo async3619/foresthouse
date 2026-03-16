@@ -1,7 +1,7 @@
 import type { CliOptions } from '../app/args.js'
 import type { AnalyzeOptions } from '../types.js'
 
-export abstract class BaseRunner<TGraph> {
+export abstract class BaseCommand<TGraph> {
   constructor(protected readonly options: CliOptions) {}
 
   run(): void {
