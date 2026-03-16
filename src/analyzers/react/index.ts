@@ -112,7 +112,7 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
     const nodes = new Map<string, ReactUsageNode>()
 
     for (const fileAnalysis of fileAnalyses.values()) {
-      for (const symbol of fileAnalysis.symbolsById.values()) {
+      for (const symbol of fileAnalysis.allSymbolsById.values()) {
         nodes.set(symbol.id, {
           id: symbol.id,
           name: symbol.name,
@@ -136,7 +136,7 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
     nodes: Map<string, ReactUsageNode>,
   ): void {
     for (const fileAnalysis of fileAnalyses.values()) {
-      for (const symbol of fileAnalysis.symbolsById.values()) {
+      for (const symbol of fileAnalysis.allSymbolsById.values()) {
         const usages = new Map<string, ReactUsageEdge>()
 
         symbol.componentReferences.forEach((referenceName) => {

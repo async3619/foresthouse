@@ -4,6 +4,8 @@ import {
   getComponentReferenceName,
   getCreateElementComponentReferenceName,
   getHookReferenceName,
+  getStyledBuiltinReferenceName,
+  getStyledComponentReferenceName,
   walkReactUsageTree,
 } from './walk.js'
 
@@ -11,16 +13,7 @@ export function analyzeSymbolUsages(
   symbol: PendingReactUsageNode,
   includeBuiltins: boolean,
 ): void {
-  const root =
-    symbol.declaration.type === 'ArrowFunctionExpression'
-      ? symbol.declaration.body
-      : symbol.declaration.body
-
-  if (root === null) {
-    return
-  }
-
-  walkReactUsageTree(root, (node) => {
+  walkReactUsageTree(symbol.analysisRoot, (node) => {
     if (node.type === 'JSXElement') {
       const name = getComponentReferenceName(node)
       if (name !== undefined) {
@@ -45,6 +38,32 @@ export function analyzeSymbolUsages(
       const componentReference = getCreateElementComponentReferenceName(node)
       if (componentReference !== undefined) {
         symbol.componentReferences.add(componentReference)
+      }
+
+      const styledComponentReference = getStyledComponentReferenceName(node)
+      if (styledComponentReference !== undefined) {
+        symbol.componentReferences.add(styledComponentReference)
+      }
+
+      if (includeBuiltins) {
+        const styledBuiltinReference = getStyledBuiltinReferenceName(node)
+        if (styledBuiltinReference !== undefined) {
+          symbol.builtinReferences.add(styledBuiltinReference)
+        }
+      }
+    }
+
+    if (node.type === 'TaggedTemplateExpression') {
+      const styledComponentReference = getStyledComponentReferenceName(node)
+      if (styledComponentReference !== undefined) {
+        symbol.componentReferences.add(styledComponentReference)
+      }
+
+      if (includeBuiltins) {
+        const styledBuiltinReference = getStyledBuiltinReferenceName(node)
+        if (styledBuiltinReference !== undefined) {
+          symbol.builtinReferences.add(styledBuiltinReference)
+        }
       }
     }
   })

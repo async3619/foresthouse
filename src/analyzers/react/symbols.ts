@@ -1,6 +1,10 @@
 import type {
   ArrowFunctionExpression,
   ExportDefaultDeclaration,
+  Expression,
+  FunctionBody,
+  JSXElement,
+  JSXFragment,
   Function as OxcFunction,
   Statement,
   VariableDeclarator,
@@ -41,6 +45,38 @@ export function collectTopLevelReactSymbols(
   }
 }
 
+export function collectTopLevelDynamicComponentCandidates(
+  statement: Statement,
+  filePath: string,
+  symbolsByName: ReadonlyMap<string, PendingReactUsageNode>,
+  dynamicComponentCandidatesByName: Map<string, PendingReactUsageNode>,
+): void {
+  switch (statement.type) {
+    case 'VariableDeclaration':
+      statement.declarations.forEach((declarator) => {
+        addDynamicComponentCandidate(
+          declarator,
+          filePath,
+          symbolsByName,
+          dynamicComponentCandidatesByName,
+        )
+      })
+      return
+    case 'ExportNamedDeclaration':
+      if (statement.declaration !== null) {
+        collectTopLevelDynamicComponentCandidates(
+          statement.declaration,
+          filePath,
+          symbolsByName,
+          dynamicComponentCandidatesByName,
+        )
+      }
+      return
+    default:
+      return
+  }
+}
+
 function addFunctionSymbol(
   declaration: OxcFunction,
   filePath: string,
@@ -58,7 +94,13 @@ function addFunctionSymbol(
 
   symbolsByName.set(
     name,
-    createPendingSymbol(filePath, name, kind, declaration),
+    createPendingSymbol(
+      filePath,
+      name,
+      kind,
+      declaration.id?.start ?? declaration.start,
+      getAnalysisRoot(declaration),
+    ),
   )
 }
 
@@ -71,13 +113,6 @@ function addVariableSymbol(
     return
   }
 
-  if (
-    declarator.init.type !== 'ArrowFunctionExpression' &&
-    declarator.init.type !== 'FunctionExpression'
-  ) {
-    return
-  }
-
   const name = declarator.id.name
   const kind = classifyReactSymbol(name, declarator.init)
   if (kind === undefined) {
@@ -86,7 +121,13 @@ function addVariableSymbol(
 
   symbolsByName.set(
     name,
-    createPendingSymbol(filePath, name, kind, declarator.init),
+    createPendingSymbol(
+      filePath,
+      name,
+      kind,
+      declarator.init.start,
+      getAnalysisRoot(declarator.init),
+    ),
   )
 }
 
@@ -108,28 +149,100 @@ function addDefaultExportSymbol(
     if (kind !== undefined) {
       symbolsByName.set(
         name,
-        createPendingSymbol(filePath, name, kind, declaration.declaration),
+        createPendingSymbol(
+          filePath,
+          name,
+          kind,
+          declaration.declaration.start,
+          getAnalysisRoot(declaration.declaration),
+        ),
       )
     }
   }
+}
+
+function addDynamicComponentCandidate(
+  declarator: VariableDeclarator,
+  filePath: string,
+  symbolsByName: ReadonlyMap<string, PendingReactUsageNode>,
+  dynamicComponentCandidatesByName: Map<string, PendingReactUsageNode>,
+): void {
+  if (declarator.id.type !== 'Identifier' || declarator.init === null) {
+    return
+  }
+
+  const name = declarator.id.name
+  if (
+    !isPotentialDynamicComponentName(name) ||
+    symbolsByName.has(name) ||
+    !isDynamicComponentInitializer(declarator.init)
+  ) {
+    return
+  }
+
+  dynamicComponentCandidatesByName.set(
+    name,
+    createPendingSymbol(
+      filePath,
+      name,
+      'component',
+      declarator.init.start,
+      getAnalysisRoot(declarator.init),
+    ),
+  )
 }
 
 function createPendingSymbol(
   filePath: string,
   name: string,
   kind: ReactSymbolKind,
-  declaration: OxcFunction | ArrowFunctionExpression,
+  declarationOffset: number,
+  analysisRoot: FunctionBody | Expression | JSXFragment | JSXElement,
 ): PendingReactUsageNode {
   return {
     id: `${filePath}#${kind}:${name}`,
     name,
     kind,
     filePath,
-    declarationOffset: declaration.id?.start ?? declaration.start,
-    declaration,
+    declarationOffset,
+    analysisRoot,
     exportNames: new Set<string>(),
     componentReferences: new Set<string>(),
     hookReferences: new Set<string>(),
     builtinReferences: new Set<string>(),
   }
+}
+
+function getAnalysisRoot(
+  declaration: OxcFunction | ArrowFunctionExpression | Expression,
+): FunctionBody | Expression | JSXFragment | JSXElement {
+  if (
+    declaration.type === 'FunctionDeclaration' ||
+    declaration.type === 'FunctionExpression'
+  ) {
+    if (declaration.body === null) {
+      throw new Error(
+        `Expected React symbol "${declaration.id?.name ?? 'anonymous'}" to have a body.`,
+      )
+    }
+
+    return declaration.body
+  }
+
+  if (declaration.type === 'ArrowFunctionExpression') {
+    return declaration.body
+  }
+
+  return declaration
+}
+
+function isDynamicComponentInitializer(expression: Expression): boolean {
+  return (
+    expression.type === 'CallExpression' ||
+    expression.type === 'TaggedTemplateExpression'
+  )
+}
+
+function isPotentialDynamicComponentName(name: string): boolean {
+  return /^[A-Z][A-Za-z0-9]*$/.test(name)
 }

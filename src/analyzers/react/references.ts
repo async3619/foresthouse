@@ -15,7 +15,7 @@ export function resolveReactReference(
     return getBuiltinNodeId(name)
   }
 
-  const localSymbol = fileAnalysis.symbolsByName.get(name)
+  const localSymbol = fileAnalysis.allSymbolsByName.get(name)
   if (localSymbol !== undefined && localSymbol.kind === kind) {
     return localSymbol.id
   }
@@ -66,7 +66,7 @@ function resolveExportedSymbol(
 
   const directTargetId = fileAnalysis.exportsByName.get(exportName)
   if (directTargetId !== undefined) {
-    const directTargetSymbol = fileAnalysis.symbolsById.get(directTargetId)
+    const directTargetSymbol = fileAnalysis.allSymbolsById.get(directTargetId)
     if (directTargetSymbol?.kind === kind) {
       return directTargetId
     }
@@ -154,7 +154,7 @@ export function addBuiltinNodes(
       }
     })
 
-    fileAnalysis.symbolsById.forEach((symbol) => {
+    fileAnalysis.allSymbolsById.forEach((symbol) => {
       symbol.builtinReferences.forEach((name) => {
         const builtinNode = createBuiltinNode(name)
         if (!nodes.has(builtinNode.id)) {

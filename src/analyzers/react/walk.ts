@@ -7,6 +7,7 @@ import type {
   JSXElementName,
   JSXFragment,
   Node,
+  TaggedTemplateExpression,
 } from 'oxc-parser'
 import { visitorKeys } from 'oxc-parser'
 
@@ -77,13 +78,21 @@ export function isNode(value: unknown): value is Node {
 
 export function classifyReactSymbol(
   name: string,
-  declaration: ArrowFunctionExpression | import('oxc-parser').Function,
+  declaration:
+    | ArrowFunctionExpression
+    | import('oxc-parser').Function
+    | Expression,
 ): import('../../types/react-symbol-kind.js').ReactSymbolKind | undefined {
-  if (isHookName(name)) {
+  if (isHookName(name) && isFunctionLikeDeclaration(declaration)) {
     return 'hook'
   }
 
-  if (isComponentName(name) && returnsReactElement(declaration)) {
+  if (
+    isComponentName(name) &&
+    ((isFunctionLikeDeclaration(declaration) &&
+      returnsReactElement(declaration)) ||
+      isStyledComponentDeclaration(declaration))
+  ) {
     return 'component'
   }
 
@@ -142,6 +151,26 @@ export function getCreateElementComponentReferenceName(
   return isComponentName(firstArgument.name) ? firstArgument.name : undefined
 }
 
+export function getStyledComponentReferenceName(
+  node: CallExpression | TaggedTemplateExpression,
+): string | undefined {
+  const reference = getStyledFactoryReference(
+    node.type === 'CallExpression' ? node.callee : node.tag,
+  )
+
+  return reference?.kind === 'component' ? reference.name : undefined
+}
+
+export function getStyledBuiltinReferenceName(
+  node: CallExpression | TaggedTemplateExpression,
+): string | undefined {
+  const reference = getStyledFactoryReference(
+    node.type === 'CallExpression' ? node.callee : node.tag,
+  )
+
+  return reference?.kind === 'builtin' ? reference.name : undefined
+}
+
 export function isHookName(name: string): boolean {
   return /^use[A-Z0-9]/.test(name)
 }
@@ -152,6 +181,19 @@ export function isComponentName(name: string): boolean {
 
 function isIntrinsicElementName(name: string): boolean {
   return /^[a-z]/.test(name)
+}
+
+function isFunctionLikeDeclaration(
+  declaration:
+    | ArrowFunctionExpression
+    | import('oxc-parser').Function
+    | Expression,
+): declaration is ArrowFunctionExpression | import('oxc-parser').Function {
+  return (
+    declaration.type === 'ArrowFunctionExpression' ||
+    declaration.type === 'FunctionDeclaration' ||
+    declaration.type === 'FunctionExpression'
+  )
 }
 
 function returnsReactElement(
@@ -181,6 +223,75 @@ function returnsReactElement(
   })
 
   return found
+}
+
+function isStyledComponentDeclaration(expression: Expression): boolean {
+  if (expression.type === 'CallExpression') {
+    return getStyledFactoryReference(expression.callee) !== undefined
+  }
+
+  if (expression.type === 'TaggedTemplateExpression') {
+    return getStyledFactoryReference(expression.tag) !== undefined
+  }
+
+  return false
+}
+
+function getStyledFactoryReference(expression: Expression):
+  | {
+      readonly kind: 'builtin' | 'component'
+      readonly name: string
+    }
+  | undefined {
+  const unwrapped = unwrapExpression(expression)
+
+  if (unwrapped.type === 'MemberExpression' && !unwrapped.computed) {
+    if (
+      unwrapped.object.type !== 'Identifier' ||
+      unwrapped.object.name !== 'styled' ||
+      unwrapped.property.type !== 'Identifier'
+    ) {
+      return undefined
+    }
+
+    const name = unwrapped.property.name
+    if (isIntrinsicElementName(name)) {
+      return {
+        kind: 'builtin',
+        name,
+      }
+    }
+
+    if (isComponentName(name)) {
+      return {
+        kind: 'component',
+        name,
+      }
+    }
+
+    return undefined
+  }
+
+  if (unwrapped.type !== 'CallExpression') {
+    return undefined
+  }
+
+  const callee = unwrapExpression(unwrapped.callee)
+  if (callee.type !== 'Identifier' || callee.name !== 'styled') {
+    return undefined
+  }
+
+  const [firstArgument] = unwrapped.arguments
+  if (firstArgument?.type !== 'Identifier') {
+    return undefined
+  }
+
+  return isComponentName(firstArgument.name)
+    ? {
+        kind: 'component',
+        name: firstArgument.name,
+      }
+    : undefined
 }
 
 function isReactCreateElementCall(node: CallExpression): boolean {
