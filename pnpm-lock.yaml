@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      cac:
+        specifier: ^7.0.0
+        version: 7.0.0
       oxc-parser:
         specifier: 0.119.0
         version: 0.119.0
