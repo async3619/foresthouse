@@ -2,14 +2,12 @@ import fs from 'node:fs'
 
 import { parseSync } from 'oxc-parser'
 
-import type {
-  AnalyzeOptions,
-  DependencyGraph,
-  ReactUsageEdge,
-  ReactUsageEntry,
-  ReactUsageGraph,
-  ReactUsageNode,
-} from '../../types/index.js'
+import type { AnalyzeOptions } from '../../types/analyze-options.js'
+import type { DependencyGraph } from '../../types/dependency-graph.js'
+import type { ReactUsageEdge } from '../../types/react-usage-edge.js'
+import type { ReactUsageEntry } from '../../types/react-usage-entry.js'
+import type { ReactUsageGraph } from '../../types/react-usage-graph.js'
+import type { ReactUsageNode } from '../../types/react-usage-node.js'
 import { isSourceCodeFile } from '../../utils/is-source-code-file.js'
 import { BaseAnalyzer } from '../base.js'
 import { analyzeDependencies } from '../import/index.js'

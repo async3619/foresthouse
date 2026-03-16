@@ -1,10 +1,8 @@
-import type {
-  ReactUsageEdge,
-  ReactUsageEntry,
-  ReactUsageFilter,
-  ReactUsageGraph,
-  ReactUsageNode,
-} from '../../types/index.js'
+import type { ReactUsageEdge } from '../../types/react-usage-edge.js'
+import type { ReactUsageEntry } from '../../types/react-usage-entry.js'
+import type { ReactUsageFilter } from '../../types/react-usage-filter.js'
+import type { ReactUsageGraph } from '../../types/react-usage-graph.js'
+import type { ReactUsageNode } from '../../types/react-usage-node.js'
 import { compareReactNodeIds } from './references.js'
 
 export function getReactUsageEntries(

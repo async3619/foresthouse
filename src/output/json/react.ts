@@ -3,11 +3,9 @@ import {
   getReactUsageEntries,
   getReactUsageRoots,
 } from '../../analyzers/react/queries.js'
-import type {
-  ReactUsageEntry,
-  ReactUsageFilter,
-  ReactUsageGraph,
-} from '../../types/index.js'
+import type { ReactUsageEntry } from '../../types/react-usage-entry.js'
+import type { ReactUsageFilter } from '../../types/react-usage-filter.js'
+import type { ReactUsageGraph } from '../../types/react-usage-graph.js'
 import { toDisplayPath } from '../../utils/to-display-path.js'
 
 interface SerializedReactUsageNode {
