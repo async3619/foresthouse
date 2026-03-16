@@ -1,0 +1,163 @@
+import {
+  getFilteredUsages,
+  getReactUsageEntries,
+  getReactUsageRoots,
+} from '../analyzers/react/queries.js'
+import { formatReactSymbolLabel, resolveColorSupport } from '../color.js'
+import type {
+  PrintReactTreeOptions,
+  ReactUsageEdge,
+  ReactUsageEntry,
+  ReactUsageGraph,
+  ReactUsageNode,
+} from '../types.js'
+import { toDisplayPath } from '../utils/to-display-path.js'
+
+export function printReactUsageTree(
+  graph: ReactUsageGraph,
+  options: PrintReactTreeOptions = {},
+): string {
+  const cwd = options.cwd ?? graph.cwd
+  const color = resolveColorSupport(options.color)
+  const filter = options.filter ?? 'all'
+  const entries = getReactUsageEntries(graph, filter)
+
+  if (entries.length > 0) {
+    return renderReactUsageEntries(graph, entries, cwd, filter, color)
+  }
+
+  const roots = getReactUsageRoots(graph, filter)
+  if (roots.length === 0) {
+    return 'No React symbols found.'
+  }
+
+  const lines: string[] = []
+  roots.forEach((rootId, index) => {
+    const root = graph.nodes.get(rootId)
+    if (root === undefined) {
+      return
+    }
+
+    lines.push(formatReactNodeLabel(root, cwd, color))
+    const usages = getFilteredUsages(root, graph, filter)
+    usages.forEach((usage, usageIndex) => {
+      lines.push(
+        ...renderUsage(
+          usage,
+          graph,
+          cwd,
+          filter,
+          color,
+          new Set([root.id]),
+          '',
+          usageIndex === usages.length - 1,
+        ),
+      )
+    })
+
+    if (index < roots.length - 1) {
+      lines.push('')
+    }
+  })
+
+  return lines.join('\n')
+}
+
+function renderReactUsageEntries(
+  graph: ReactUsageGraph,
+  entries: readonly ReactUsageEntry[],
+  cwd: string,
+  filter: NonNullable<PrintReactTreeOptions['filter']>,
+  color: boolean,
+): string {
+  const lines: string[] = []
+
+  entries.forEach((entry, index) => {
+    const root = graph.nodes.get(entry.target)
+    if (root === undefined) {
+      return
+    }
+
+    lines.push(formatReactEntryLabel(entry, cwd))
+    lines.push(formatReactNodeLabel(root, cwd, color))
+
+    const usages = getFilteredUsages(root, graph, filter)
+    usages.forEach((usage, usageIndex) => {
+      lines.push(
+        ...renderUsage(
+          usage,
+          graph,
+          cwd,
+          filter,
+          color,
+          new Set([root.id]),
+          '',
+          usageIndex === usages.length - 1,
+        ),
+      )
+    })
+
+    if (index < entries.length - 1) {
+      lines.push('')
+    }
+  })
+
+  return lines.join('\n')
+}
+
+function renderUsage(
+  usage: ReactUsageEdge,
+  graph: ReactUsageGraph,
+  cwd: string,
+  filter: NonNullable<PrintReactTreeOptions['filter']>,
+  color: boolean,
+  visited: ReadonlySet<string>,
+  prefix: string,
+  isLast: boolean,
+): string[] {
+  const branch = `${prefix}${isLast ? '└─ ' : '├─ '}`
+  const target = graph.nodes.get(usage.target)
+
+  if (target === undefined) {
+    return [`${branch}${usage.target}`]
+  }
+
+  if (visited.has(target.id)) {
+    return [`${branch}${formatReactNodeLabel(target, cwd, color)} (circular)`]
+  }
+
+  const childLines = [`${branch}${formatReactNodeLabel(target, cwd, color)}`]
+  const nextVisited = new Set(visited)
+  nextVisited.add(target.id)
+  const nextPrefix = `${prefix}${isLast ? '   ' : '│  '}`
+  const childUsages = getFilteredUsages(target, graph, filter)
+
+  childUsages.forEach((childUsage, index) => {
+    childLines.push(
+      ...renderUsage(
+        childUsage,
+        graph,
+        cwd,
+        filter,
+        color,
+        nextVisited,
+        nextPrefix,
+        index === childUsages.length - 1,
+      ),
+    )
+  })
+
+  return childLines
+}
+
+function formatReactNodeLabel(
+  node: ReactUsageNode,
+  cwd: string,
+  color: boolean,
+): string {
+  return `${formatReactSymbolLabel(node.name, node.kind, color)} (${toDisplayPath(node.filePath, cwd)})`
+}
+
+function formatReactEntryLabel(entry: ReactUsageEntry, cwd: string): string {
+  return `${toDisplayPath(entry.location.filePath, cwd)}:${entry.location.line}:${entry.location.column}`
+}
