@@ -1,3 +1,9 @@
+## [1.0.0-dev.18](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.17...v1.0.0-dev.18) (2026-03-16)
+
+### Features
+
+* add git diff mode to deps command ([#47](https://github.com/async3619/foresthouse/issues/47)) ([d06edd1](https://github.com/async3619/foresthouse/commit/d06edd18095cc0af21809decde2ccc5b8483248b))
+
 ## [1.0.0-dev.17](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.16...v1.0.0-dev.17) (2026-03-16)
 
 ### Features
