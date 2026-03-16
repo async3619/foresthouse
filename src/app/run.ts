@@ -4,6 +4,12 @@ import { printDependencyTree } from '../renderers/dependency-tree.js'
 import { printReactUsageTree } from '../renderers/react-usage-tree.js'
 import { graphToSerializableTree } from '../serializers/dependency-tree.js'
 import { graphToSerializableReactTree } from '../serializers/react-usage-tree.js'
+import type {
+  AnalyzeOptions,
+  DependencyGraph,
+  ReactUsageFilter,
+  ReactUsageGraph,
+} from '../types.js'
 import type { CliOptions } from './args.js'
 
 export function runCli(options: CliOptions): void {
@@ -14,79 +20,91 @@ class CliApplication {
   constructor(private readonly options: CliOptions) {}
 
   run(): void {
+    this.createRunner().run()
+  }
+
+  private createRunner(): BaseModeRunner<DependencyGraph | ReactUsageGraph> {
     if (this.options.react !== undefined) {
-      this.runReactMode()
-      return
+      return new ReactModeRunner(this.options)
     }
 
-    this.runDependencyMode()
+    return new DependencyModeRunner(this.options)
   }
+}
 
-  private runReactMode(): void {
-    const filter = this.options.react ?? 'all'
-    const graph = analyzeReactUsage(
-      this.options.entryFile,
-      this.getAnalyzeOptions(),
-    )
+abstract class BaseModeRunner<TGraph> {
+  constructor(protected readonly options: CliOptions) {}
 
-    if (this.options.json) {
+  run(): void {
+    const graph = this.analyze()
+
+    if (this.isJsonMode()) {
       process.stdout.write(
-        `${JSON.stringify(
-          graphToSerializableReactTree(graph, {
-            filter,
-          }),
-          null,
-          2,
-        )}\n`,
+        `${JSON.stringify(this.serialize(graph), null, 2)}\n`,
       )
       return
     }
 
-    process.stdout.write(
-      `${printReactUsageTree(graph, {
-        cwd: this.options.cwd ?? graph.cwd,
-        filter,
-      })}\n`,
-    )
+    process.stdout.write(`${this.render(graph)}\n`)
   }
 
-  private runDependencyMode(): void {
-    const graph = analyzeDependencies(
-      this.options.entryFile,
-      this.getAnalyzeOptions(),
-    )
-
-    if (this.options.json) {
-      process.stdout.write(
-        `${JSON.stringify(
-          graphToSerializableTree(graph, {
-            omitUnused: this.options.omitUnused,
-          }),
-          null,
-          2,
-        )}\n`,
-      )
-      return
-    }
-
-    process.stdout.write(
-      `${printDependencyTree(graph, {
-        cwd: this.options.cwd ?? graph.cwd,
-        includeExternals: this.options.includeExternals,
-        omitUnused: this.options.omitUnused,
-      })}\n`,
-    )
+  protected isJsonMode(): boolean {
+    return this.options.json
   }
 
-  private getAnalyzeOptions(): {
-    readonly cwd?: string
-    readonly configPath?: string
-  } {
+  protected getAnalyzeOptions(): AnalyzeOptions {
     return {
       ...(this.options.cwd === undefined ? {} : { cwd: this.options.cwd }),
       ...(this.options.configPath === undefined
         ? {}
         : { configPath: this.options.configPath }),
     }
+  }
+
+  protected abstract analyze(): TGraph
+  protected abstract serialize(graph: TGraph): object
+  protected abstract render(graph: TGraph): string
+}
+
+class DependencyModeRunner extends BaseModeRunner<DependencyGraph> {
+  protected analyze(): DependencyGraph {
+    return analyzeDependencies(this.options.entryFile, this.getAnalyzeOptions())
+  }
+
+  protected serialize(graph: DependencyGraph): object {
+    return graphToSerializableTree(graph, {
+      omitUnused: this.options.omitUnused,
+    })
+  }
+
+  protected render(graph: DependencyGraph): string {
+    return printDependencyTree(graph, {
+      cwd: this.options.cwd ?? graph.cwd,
+      includeExternals: this.options.includeExternals,
+      omitUnused: this.options.omitUnused,
+    })
+  }
+}
+
+class ReactModeRunner extends BaseModeRunner<ReactUsageGraph> {
+  protected analyze(): ReactUsageGraph {
+    return analyzeReactUsage(this.options.entryFile, this.getAnalyzeOptions())
+  }
+
+  protected serialize(graph: ReactUsageGraph): object {
+    return graphToSerializableReactTree(graph, {
+      filter: this.getFilter(),
+    })
+  }
+
+  protected render(graph: ReactUsageGraph): string {
+    return printReactUsageTree(graph, {
+      cwd: this.options.cwd ?? graph.cwd,
+      filter: this.getFilter(),
+    })
+  }
+
+  private getFilter(): ReactUsageFilter {
+    return this.options.react ?? 'all'
   }
 }
