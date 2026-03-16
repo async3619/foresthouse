@@ -529,6 +529,7 @@ describe('analyzePackageDependencies', () => {
           kind: 'workspace',
           name: '@repo/config',
           change: 'added',
+          propagated: false,
           after: {
             target: 'packages/config',
             specifier: 'workspace:*',
@@ -543,6 +544,7 @@ describe('analyzePackageDependencies', () => {
           kind: 'workspace',
           name: '@repo/ui',
           change: 'removed',
+          propagated: false,
           before: {
             target: 'packages/ui',
             specifier: 'workspace:*',
@@ -564,6 +566,258 @@ describe('analyzePackageDependencies', () => {
           after: {
             target: 'react@^19.2.0',
             specifier: '^19.2.0',
+          },
+        },
+      ],
+    })
+  })
+
+  it('propagates internal workspace subtree changes through unchanged workspace edges', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/ui': 'workspace:*',
+                react: '^19.1.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+              dependencies: {
+                clsx: '^2.1.1',
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      },
+      {
+        message: 'update internal workspace subtree',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/ui': 'workspace:*',
+                react: '^19.1.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+              dependencies: {
+                clsx: '^2.1.1',
+                zod: '^3.25.0',
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      },
+    ])
+
+    const graph = analyzePackageDependencyDiff(
+      path.join(repositoryRoot, 'apps', 'web'),
+      'HEAD~1',
+    )
+    const output = printPackageDependencyDiffTree(graph, {
+      color: false,
+    })
+    const jsonTree = diffGraphToSerializablePackageTree(graph)
+
+    expect(output).toBe(
+      [
+        '~ @repo/web',
+        '└─ ~ packages/ui (workspace:*)',
+        '   └─ + zod@^3.25.0',
+      ].join('\n'),
+    )
+    expect(jsonTree).toMatchObject({
+      kind: 'root',
+      label: '@repo/web',
+      packageName: '@repo/web',
+      path: 'apps/web',
+      change: 'changed',
+      dependencies: [
+        {
+          kind: 'workspace',
+          name: '@repo/ui',
+          change: 'changed',
+          propagated: true,
+          before: {
+            target: 'packages/ui',
+            specifier: 'workspace:*',
+          },
+          after: {
+            target: 'packages/ui',
+            specifier: 'workspace:*',
+          },
+          node: {
+            kind: 'workspace',
+            path: 'packages/ui',
+            change: 'changed',
+            contentChanged: true,
+            dependencies: [
+              {
+                kind: 'external',
+                name: 'zod',
+                change: 'added',
+              },
+            ],
+          },
+        },
+      ],
+    })
+  })
+
+  it('propagates internal workspace content changes through unchanged workspace edges', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/ui': 'workspace:*',
+                react: '^19.1.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'apps/web/src/main.tsx': 'export const entry = "web"\n',
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+              dependencies: {
+                clsx: '^2.1.1',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/src/button.tsx': 'export const Button = "before"\n',
+        },
+      },
+      {
+        message: 'update internal workspace source',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/ui': 'workspace:*',
+                react: '^19.1.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'apps/web/src/main.tsx': 'export const entry = "web"\n',
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+              dependencies: {
+                clsx: '^2.1.1',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/src/button.tsx': 'export const Button = "after"\n',
+        },
+      },
+    ])
+
+    const graph = analyzePackageDependencyDiff(
+      path.join(repositoryRoot, 'apps', 'web'),
+      'HEAD~1',
+    )
+    const output = printPackageDependencyDiffTree(graph, {
+      color: false,
+    })
+    const jsonTree = diffGraphToSerializablePackageTree(graph)
+
+    expect(output).toBe(
+      ['~ @repo/web', '└─ ~ packages/ui (workspace:*)'].join('\n'),
+    )
+    expect(jsonTree).toMatchObject({
+      kind: 'root',
+      label: '@repo/web',
+      packageName: '@repo/web',
+      path: 'apps/web',
+      change: 'changed',
+      contentChanged: false,
+      dependencies: [
+        {
+          kind: 'workspace',
+          name: '@repo/ui',
+          change: 'changed',
+          propagated: true,
+          before: {
+            target: 'packages/ui',
+            specifier: 'workspace:*',
+          },
+          after: {
+            target: 'packages/ui',
+            specifier: 'workspace:*',
+          },
+          node: {
+            kind: 'workspace',
+            path: 'packages/ui',
+            change: 'changed',
+            contentChanged: true,
+            dependencies: [],
           },
         },
       ],

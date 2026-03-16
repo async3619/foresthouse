@@ -89,6 +89,7 @@ function serializePackageDiffNode(node: PackageDependencyDiffNode): object {
     packageName: node.packageName,
     path: node.path,
     change: node.change,
+    contentChanged: node.contentChanged,
     ...(node.beforePackageName === undefined
       ? {}
       : { beforePackageName: node.beforePackageName }),
@@ -116,7 +117,10 @@ function serializePackageDiffDependency(
         : { target: dependency.before.target }
       : { target: dependency.after.target }),
     ...(dependency.kind === 'workspace'
-      ? { node: serializePackageDiffNode(dependency.node) }
+      ? {
+          propagated: dependency.propagated,
+          node: serializePackageDiffNode(dependency.node),
+        }
       : {}),
   }
 }

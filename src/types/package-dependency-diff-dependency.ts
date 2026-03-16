@@ -21,6 +21,7 @@ export interface ExternalPackageDependencyDiff
 export interface WorkspacePackageDependencyDiff
   extends BasePackageDependencyDiffDependency {
   readonly kind: 'workspace'
+  readonly propagated: boolean
   readonly node: PackageDependencyDiffNode
 }
 

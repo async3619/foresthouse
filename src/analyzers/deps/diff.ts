@@ -80,6 +80,12 @@ export function analyzePackageDependencyDiff(
     throw new Error(`No package.json found from ${resolvedInputPath}`)
   }
 
+  const changedPackagePaths = collectChangedPackagePaths(
+    beforeGraph,
+    afterGraph,
+    resolveChangedFilePaths(repositoryRoot, comparison),
+  )
+
   return {
     repositoryRoot,
     root: diffPackageNode(
@@ -90,6 +96,7 @@ export function analyzePackageDependencyDiff(
       },
       beforeGraph,
       afterGraph,
+      changedPackagePaths,
       new Set(),
     ),
   }
@@ -410,6 +417,7 @@ function diffPackageNode(
   },
   beforeGraph: ComparablePackageDependencyGraph | undefined,
   afterGraph: ComparablePackageDependencyGraph | undefined,
+  changedPackagePaths: ReadonlySet<string>,
   ancestry: ReadonlySet<string>,
 ): PackageDependencyDiffNode {
   const nodeKey = `${location.beforePath ?? ''}->${location.afterPath ?? ''}`
@@ -441,6 +449,7 @@ function diffPackageNode(
       packageName,
       path: packagePath,
       change: 'unchanged',
+      contentChanged: false,
       dependencies: [],
     }
   }
@@ -453,12 +462,15 @@ function diffPackageNode(
     afterNode,
     beforeGraph,
     afterGraph,
+    changedPackagePaths,
     nextAncestry,
   )
+  const contentChanged = changedPackagePaths.has(packagePath)
   const change = resolveNodeChange(
     location,
     beforeNode,
     afterNode,
+    contentChanged,
     dependencies,
   )
 
@@ -468,6 +480,7 @@ function diffPackageNode(
     packageName,
     path: packagePath,
     change,
+    contentChanged,
     ...(beforeNode !== undefined &&
     afterNode !== undefined &&
     beforeNode.packageName !== afterNode.packageName
@@ -485,6 +498,7 @@ function collectDependencyDiffs(
   afterNode: ComparablePackageDependencyNode | undefined,
   beforeGraph: ComparablePackageDependencyGraph | undefined,
   afterGraph: ComparablePackageDependencyGraph | undefined,
+  changedPackagePaths: ReadonlySet<string>,
   ancestry: ReadonlySet<string>,
 ): PackageDependencyDiffDependency[] {
   const dependencyKeys = new Set<string>([
@@ -507,6 +521,7 @@ function collectDependencyDiffs(
         afterNode?.dependenciesByKey.get(dependencyKey),
         beforeGraph,
         afterGraph,
+        changedPackagePaths,
         ancestry,
       )
 
@@ -539,9 +554,13 @@ function diffDependency(
   afterDependency: ComparablePackageDependency | undefined,
   beforeGraph: ComparablePackageDependencyGraph | undefined,
   afterGraph: ComparablePackageDependencyGraph | undefined,
+  changedPackagePaths: ReadonlySet<string>,
   ancestry: ReadonlySet<string>,
 ): PackageDependencyDiffDependency | undefined {
-  const change = resolveDependencyChange(beforeDependency, afterDependency)
+  const directChange = resolveDependencyChange(
+    beforeDependency,
+    afterDependency,
+  )
 
   if (
     beforeDependency?.kind === 'workspace' ||
@@ -572,8 +591,13 @@ function diffDependency(
       },
       beforeGraph,
       afterGraph,
+      changedPackagePaths,
       ancestry,
     )
+
+    const propagated =
+      directChange === 'unchanged' && node.change !== 'unchanged'
+    const change = propagated ? 'changed' : directChange
 
     if (change === 'unchanged' && !hasVisibleChanges(node)) {
       return undefined
@@ -583,6 +607,7 @@ function diffDependency(
       kind: 'workspace',
       name: workspaceDependency.name,
       change,
+      propagated,
       ...(beforeDependency === undefined
         ? {}
         : { before: toDiffState(beforeDependency) }),
@@ -593,7 +618,7 @@ function diffDependency(
     }
   }
 
-  if (change === 'unchanged') {
+  if (directChange === 'unchanged') {
     return undefined
   }
 
@@ -606,7 +631,7 @@ function diffDependency(
   return {
     kind: 'external',
     name: dependency.name,
-    change,
+    change: directChange,
     ...(beforeDependency === undefined
       ? {}
       : { before: toDiffState(beforeDependency) }),
@@ -689,6 +714,7 @@ function resolveNodeChange(
   },
   beforeNode: ComparablePackageDependencyNode | undefined,
   afterNode: ComparablePackageDependencyNode | undefined,
+  contentChanged: boolean,
   dependencies: readonly PackageDependencyDiffDependency[],
 ): PackageDependencyChangeKind {
   if (beforeNode === undefined && afterNode !== undefined) {
@@ -711,9 +737,106 @@ function resolveNodeChange(
     return 'changed'
   }
 
+  if (contentChanged) {
+    return 'changed'
+  }
+
   return dependencies.some((dependency) => dependency.change !== 'unchanged')
     ? 'changed'
     : 'unchanged'
+}
+
+function resolveChangedFilePaths(
+  repositoryRoot: string,
+  comparison: GitDiffComparison,
+): ReadonlySet<string> {
+  const trackedFilePaths =
+    comparison.afterTree === undefined
+      ? parseGitPathList(
+          runGit(
+            repositoryRoot,
+            ['diff', '--name-only', '-z', comparison.beforeTree, '--'],
+            {
+              trim: false,
+            },
+          ),
+        )
+      : parseGitPathList(
+          runGit(
+            repositoryRoot,
+            [
+              'diff',
+              '--name-only',
+              '-z',
+              comparison.beforeTree,
+              comparison.afterTree,
+            ],
+            {
+              trim: false,
+            },
+          ),
+        )
+
+  if (comparison.afterTree !== undefined) {
+    return trackedFilePaths
+  }
+
+  const untrackedFilePaths = parseGitPathList(
+    runGit(
+      repositoryRoot,
+      ['ls-files', '--others', '--exclude-standard', '-z'],
+      {
+        trim: false,
+      },
+    ),
+  )
+
+  return new Set([...trackedFilePaths, ...untrackedFilePaths])
+}
+
+function parseGitPathList(output: string): ReadonlySet<string> {
+  return new Set(
+    output
+      .split('\u0000')
+      .filter((filePath) => filePath.length > 0)
+      .map((filePath) => path.normalize(filePath)),
+  )
+}
+
+function collectChangedPackagePaths(
+  beforeGraph: ComparablePackageDependencyGraph | undefined,
+  afterGraph: ComparablePackageDependencyGraph | undefined,
+  changedFilePaths: ReadonlySet<string>,
+): ReadonlySet<string> {
+  const packagePaths = new Set<string>([
+    ...Array.from(beforeGraph?.nodes.keys() ?? []),
+    ...Array.from(afterGraph?.nodes.keys() ?? []),
+  ])
+
+  return new Set(
+    Array.from(packagePaths).filter((packagePath) =>
+      Array.from(changedFilePaths).some((filePath) =>
+        isFilePathWithinPackage(filePath, packagePath),
+      ),
+    ),
+  )
+}
+
+function isFilePathWithinPackage(
+  filePath: string,
+  packagePath: string,
+): boolean {
+  if (packagePath === '.') {
+    return true
+  }
+
+  const relativePath = path.relative(packagePath, filePath)
+
+  return (
+    relativePath.length > 0 &&
+    !relativePath.startsWith('..') &&
+    !path.isAbsolute(relativePath)
+  )
 }
 
 function runGit(

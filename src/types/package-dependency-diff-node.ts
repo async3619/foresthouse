@@ -7,6 +7,7 @@ export interface PackageDependencyDiffNode {
   readonly packageName: string
   readonly path: string
   readonly change: PackageDependencyChangeKind
+  readonly contentChanged: boolean
   readonly beforePackageName?: string
   readonly afterPackageName?: string
   readonly dependencies: readonly PackageDependencyDiffDependency[]
