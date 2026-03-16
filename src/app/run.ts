@@ -1,5 +1,5 @@
-import { DependencyModeRunner } from '../runners/dependency-mode.js'
-import { ReactModeRunner } from '../runners/react-mode.js'
+import { ImportRunner } from '../runners/import.js'
+import { ReactRunner } from '../runners/react.js'
 import type { CliOptions } from './args.js'
 
 export function runCli(options: CliOptions): void {
@@ -17,9 +17,9 @@ class CliApplication {
     run(): void
   } {
     if (this.options.react !== undefined) {
-      return new ReactModeRunner(this.options)
+      return new ReactRunner(this.options)
     }
 
-    return new DependencyModeRunner(this.options)
+    return new ImportRunner(this.options)
   }
 }
