@@ -1,3 +1,14 @@
+## [1.0.0-dev.8](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.7...v1.0.0-dev.8) (2026-03-16)
+
+### Features
+
+* **cli:** add explicit import and react commands ([#28](https://github.com/async3619/foresthouse/issues/28)) ([b0b8818](https://github.com/async3619/foresthouse/commit/b0b881839f5ce15644c005b0f2f670287bf992c1))
+
+### Refactoring
+
+* **cli:** adopt cac for argument parsing ([#27](https://github.com/async3619/foresthouse/issues/27)) ([62b74f3](https://github.com/async3619/foresthouse/commit/62b74f37446b1598ff24bc91527e57a66776a7d6))
+* **core:** split internals by responsibility ([#26](https://github.com/async3619/foresthouse/issues/26)) ([061d1ca](https://github.com/async3619/foresthouse/commit/061d1caf24c777459a04dfcb93201bf08e461b2e))
+
 ## [1.0.0-dev.7](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.6...v1.0.0-dev.7) (2026-03-15)
 
 ### Bug Fixes
