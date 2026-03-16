@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  colorizePackageDiff,
   colorizeUnusedMarker,
   formatReactSymbolLabel,
   resolveColorSupport,
@@ -25,6 +26,21 @@ describe('color helpers', () => {
     )
     expect(formatReactSymbolLabel('button', 'builtin', true)).toBe(
       '\u001B[34m<button> [builtin]\u001B[0m',
+    )
+  })
+
+  it('can colorize dependency diff text by change type', () => {
+    expect(colorizePackageDiff('+ added', 'added', true)).toBe(
+      '\u001B[32m+ added\u001B[0m',
+    )
+    expect(colorizePackageDiff('- removed', 'removed', true)).toBe(
+      '\u001B[31m- removed\u001B[0m',
+    )
+    expect(colorizePackageDiff('~ changed', 'changed', true)).toBe(
+      '\u001B[33m~ changed\u001B[0m',
+    )
+    expect(colorizePackageDiff('~ changed', 'changed', false)).toBe(
+      '~ changed',
     )
   })
 

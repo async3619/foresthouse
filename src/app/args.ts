@@ -18,6 +18,7 @@ export interface ImportCliOptions extends BaseCliOptions {
 export interface DepsCliOptions extends BaseCliOptions {
   readonly command: 'deps'
   readonly directory: string
+  readonly diff: string | undefined
 }
 
 export interface ReactCliOptions extends BaseCliOptions {

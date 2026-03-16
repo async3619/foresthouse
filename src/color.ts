@@ -9,6 +9,9 @@ const ANSI_HOOK = '\u001B[35m'
 const ANSI_BUILTIN = '\u001B[34m'
 const ANSI_MUTED = '\u001B[38;5;244m'
 const ANSI_UNUSED = '\u001B[38;5;214m'
+const ANSI_DIFF_ADDED = '\u001B[32m'
+const ANSI_DIFF_REMOVED = '\u001B[31m'
+const ANSI_DIFF_CHANGED = '\u001B[33m'
 
 interface ResolveColorSupportOptions {
   readonly forceColor?: string | undefined
@@ -98,6 +101,18 @@ export function colorizeMuted(text: string, enabled: boolean): string {
   return `${ANSI_MUTED}${text}${ANSI_RESET}`
 }
 
+export function colorizePackageDiff(
+  text: string,
+  change: 'added' | 'removed' | 'changed',
+  enabled: boolean,
+): string {
+  if (!enabled) {
+    return text
+  }
+
+  return `${getPackageDiffColor(change)}${text}${ANSI_RESET}`
+}
+
 function getReactSymbolColor(kind: ReactSymbolKind): string {
   if (kind === 'component') {
     return ANSI_COMPONENT
@@ -108,4 +123,16 @@ function getReactSymbolColor(kind: ReactSymbolKind): string {
   }
 
   return ANSI_BUILTIN
+}
+
+function getPackageDiffColor(change: 'added' | 'removed' | 'changed'): string {
+  if (change === 'added') {
+    return ANSI_DIFF_ADDED
+  }
+
+  if (change === 'removed') {
+    return ANSI_DIFF_REMOVED
+  }
+
+  return ANSI_DIFF_CHANGED
 }

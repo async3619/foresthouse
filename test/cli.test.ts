@@ -53,11 +53,12 @@ describe('main', () => {
   })
 
   it('passes parsed deps options to the CLI runner', () => {
-    main('1.2.3', ['deps', './packages/app', '--json'])
+    main('1.2.3', ['deps', './packages/app', '--diff', 'HEAD~1', '--json'])
 
     expect(runCli).toHaveBeenCalledWith({
       command: 'deps',
       directory: './packages/app',
+      diff: 'HEAD~1',
       cwd: undefined,
       configPath: undefined,
       expandWorkspaces: true,

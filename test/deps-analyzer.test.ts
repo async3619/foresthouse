@@ -1,11 +1,17 @@
+import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  analyzePackageDependencyDiff,
   analyzePackageDependencies,
+  diffGraphToSerializablePackageTree,
   graphToSerializablePackageTree,
+  printPackageDependencyDiffTree,
   printPackageDependencyTree,
 } from '../src/index.js'
 
@@ -25,6 +31,13 @@ const pnpmMonorepoFixtureDirectory = path.join(
   'fixtures',
   'deps-pnpm-monorepo',
 )
+const temporaryDirectories: string[] = []
+
+afterEach(() => {
+  temporaryDirectories.splice(0).forEach((directory) => {
+    fs.rmSync(directory, { recursive: true, force: true })
+  })
+})
 
 describe('analyzePackageDependencies', () => {
   it('prints a single-package dependency tree with declared version specifiers', () => {
@@ -243,4 +256,393 @@ describe('analyzePackageDependencies', () => {
       ],
     })
   })
+
+  it('shows changed dependency nodes for a single-package Git diff', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-single-package',
+              dependencies: {
+                react: '^19.0.0',
+                zod: '^3.25.0',
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      },
+      {
+        message: 'update dependencies',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-single-package',
+              dependencies: {
+                react: '^19.1.1',
+                tsup: '^8.5.0',
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      },
+    ])
+    const graph = analyzePackageDependencyDiff(repositoryRoot, 'HEAD~1')
+    const output = printPackageDependencyDiffTree(graph, {
+      color: false,
+    })
+    const jsonTree = diffGraphToSerializablePackageTree(graph)
+
+    expect(output).toBe(
+      [
+        '~ diff-single-package',
+        '├─ ~ react@^19.0.0 -> ^19.1.1',
+        '├─ + tsup@^8.5.0',
+        '└─ - zod@^3.25.0',
+      ].join('\n'),
+    )
+    expect(jsonTree).toMatchObject({
+      kind: 'root',
+      label: 'diff-single-package',
+      packageName: 'diff-single-package',
+      path: '.',
+      change: 'changed',
+      dependencies: [
+        {
+          kind: 'external',
+          name: 'react',
+          change: 'changed',
+          before: {
+            target: 'react@^19.0.0',
+            specifier: '^19.0.0',
+          },
+          after: {
+            target: 'react@^19.1.1',
+            specifier: '^19.1.1',
+          },
+        },
+        {
+          kind: 'external',
+          name: 'tsup',
+          change: 'added',
+          after: {
+            target: 'tsup@^8.5.0',
+            specifier: '^8.5.0',
+          },
+        },
+        {
+          kind: 'external',
+          name: 'zod',
+          change: 'removed',
+          before: {
+            target: 'zod@^3.25.0',
+            specifier: '^3.25.0',
+          },
+        },
+      ],
+    })
+  })
+
+  it('can colorize dependency diff output', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-color-package',
+              dependencies: {
+                react: '^19.0.0',
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      },
+      {
+        message: 'update dependencies',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-color-package',
+              dependencies: {
+                react: '^19.1.1',
+                tsup: '^8.5.0',
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      },
+    ])
+
+    const output = printPackageDependencyDiffTree(
+      analyzePackageDependencyDiff(repositoryRoot, 'HEAD~1'),
+      {
+        color: true,
+      },
+    )
+
+    expect(output).toBe(
+      [
+        '\u001B[33m~ diff-color-package\u001B[0m',
+        '├─ \u001B[33m~ react@^19.0.0 -> ^19.1.1\u001B[0m',
+        '└─ \u001B[32m+ tsup@^8.5.0\u001B[0m',
+      ].join('\n'),
+    )
+  })
+
+  it('shows workspace edge changes for monorepo Git ranges', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/ui': 'workspace:*',
+                react: '^19.1.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+              dependencies: {
+                '@repo/config': 'workspace:*',
+                clsx: '^2.1.1',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/config/package.json': JSON.stringify(
+            {
+              name: '@repo/config',
+              dependencies: {
+                zod: '^3.25.0',
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      },
+      {
+        message: 'switch workspace dependency',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/config': 'workspace:*',
+                react: '^19.2.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+              dependencies: {
+                '@repo/config': 'workspace:*',
+                clsx: '^2.1.1',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/config/package.json': JSON.stringify(
+            {
+              name: '@repo/config',
+              dependencies: {
+                zod: '^3.25.0',
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      },
+    ])
+
+    runGit(repositoryRoot, ['tag', '--force', 'base', 'HEAD~1'])
+
+    const graph = analyzePackageDependencyDiff(
+      path.join(repositoryRoot, 'apps', 'web'),
+      'base...HEAD',
+    )
+    const output = printPackageDependencyDiffTree(graph, {
+      color: false,
+    })
+    const jsonTree = diffGraphToSerializablePackageTree(graph)
+
+    expect(output).toBe(
+      [
+        '~ @repo/web',
+        '├─ + packages/config (workspace:*)',
+        '│  └─ + zod@^3.25.0',
+        '├─ - packages/ui (workspace:*)',
+        '│  ├─ - clsx@^2.1.1',
+        '│  └─ - packages/config (workspace:*)',
+        '│     └─ - zod@^3.25.0',
+        '└─ ~ react@^19.1.0 -> ^19.2.0',
+      ].join('\n'),
+    )
+    expect(jsonTree).toMatchObject({
+      kind: 'root',
+      label: '@repo/web',
+      packageName: '@repo/web',
+      path: 'apps/web',
+      change: 'changed',
+      dependencies: [
+        {
+          kind: 'workspace',
+          name: '@repo/config',
+          change: 'added',
+          after: {
+            target: 'packages/config',
+            specifier: 'workspace:*',
+          },
+          node: {
+            kind: 'workspace',
+            path: 'packages/config',
+            change: 'added',
+          },
+        },
+        {
+          kind: 'workspace',
+          name: '@repo/ui',
+          change: 'removed',
+          before: {
+            target: 'packages/ui',
+            specifier: 'workspace:*',
+          },
+          node: {
+            kind: 'workspace',
+            path: 'packages/ui',
+            change: 'removed',
+          },
+        },
+        {
+          kind: 'external',
+          name: 'react',
+          change: 'changed',
+          before: {
+            target: 'react@^19.1.0',
+            specifier: '^19.1.0',
+          },
+          after: {
+            target: 'react@^19.2.0',
+            specifier: '^19.2.0',
+          },
+        },
+      ],
+    })
+  })
+
+  it('reports invalid Git revisions clearly', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'git-error-fixture',
+            },
+            null,
+            2,
+          ),
+        },
+      },
+    ])
+
+    expect(() =>
+      analyzePackageDependencyDiff(repositoryRoot, 'missing-ref'),
+    ).toThrow(/Failed to resolve Git diff spec `missing-ref`:/)
+  })
 })
+
+function createGitRepository(
+  commits: readonly {
+    readonly message: string
+    readonly files: Readonly<Record<string, string>>
+  }[],
+): string {
+  const repositoryRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'foresthouse-git-fixture-'),
+  )
+
+  temporaryDirectories.push(repositoryRoot)
+
+  runGit(repositoryRoot, ['init'])
+  runGit(repositoryRoot, ['config', 'user.name', 'Foresthouse Tests'])
+  runGit(repositoryRoot, ['config', 'user.email', 'tests@example.com'])
+
+  commits.forEach((commit) => {
+    replaceRepositoryFiles(repositoryRoot, commit.files)
+    runGit(repositoryRoot, ['add', '-A'])
+    runGit(repositoryRoot, ['commit', '-m', commit.message])
+  })
+
+  return repositoryRoot
+}
+
+function replaceRepositoryFiles(
+  repositoryRoot: string,
+  files: Readonly<Record<string, string>>,
+): void {
+  fs.readdirSync(repositoryRoot, { withFileTypes: true }).forEach((entry) => {
+    if (entry.name === '.git') {
+      return
+    }
+
+    fs.rmSync(path.join(repositoryRoot, entry.name), {
+      recursive: true,
+      force: true,
+    })
+  })
+
+  Object.entries(files).forEach(([relativePath, fileContent]) => {
+    const absolutePath = path.join(repositoryRoot, relativePath)
+
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true })
+    fs.writeFileSync(absolutePath, fileContent)
+  })
+}
+
+function runGit(repositoryRoot: string, args: readonly string[]): string {
+  return execFileSync('git', args, {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  }).trim()
+}
