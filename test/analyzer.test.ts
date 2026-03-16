@@ -18,6 +18,11 @@ const monorepoFixtureDirectory = path.join(
   'packages',
   'app',
 )
+const nodeModulesConfigFixtureDirectory = path.join(
+  currentDirectory,
+  'fixtures',
+  'node-modules-config',
+)
 
 describe('analyzeDependencies', () => {
   it('resolves relative imports and tsconfig path aliases', () => {
@@ -244,6 +249,24 @@ describe('analyzeDependencies', () => {
         'index.ts',
       )} [project boundary]`,
     )
+  })
+
+  it('ignores package-internal tsconfig files under node_modules during config lookup', () => {
+    expect(() =>
+      analyzeDependencies('src/main.ts', {
+        cwd: nodeModulesConfigFixtureDirectory,
+      }),
+    ).not.toThrow()
+
+    const graph = analyzeDependencies('src/main.ts', {
+      cwd: nodeModulesConfigFixtureDirectory,
+    })
+    const output = printDependencyTree(graph, {
+      color: false,
+      includeExternals: true,
+    })
+
+    expect(output).toContain('broken-package [external]')
   })
 })
 

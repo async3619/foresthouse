@@ -61,14 +61,16 @@ function findNearestConfig(searchFrom: string): string | undefined {
   let currentDirectory = path.resolve(searchFrom)
 
   while (true) {
-    const tsconfigPath = path.join(currentDirectory, 'tsconfig.json')
-    if (ts.sys.fileExists(tsconfigPath)) {
-      return tsconfigPath
-    }
+    if (!isInsideNodeModules(currentDirectory)) {
+      const tsconfigPath = path.join(currentDirectory, 'tsconfig.json')
+      if (ts.sys.fileExists(tsconfigPath)) {
+        return tsconfigPath
+      }
 
-    const jsconfigPath = path.join(currentDirectory, 'jsconfig.json')
-    if (ts.sys.fileExists(jsconfigPath)) {
-      return jsconfigPath
+      const jsconfigPath = path.join(currentDirectory, 'jsconfig.json')
+      if (ts.sys.fileExists(jsconfigPath)) {
+        return jsconfigPath
+      }
     }
 
     const parentDirectory = path.dirname(currentDirectory)
@@ -94,4 +96,8 @@ function defaultCompilerOptions(): ts.CompilerOptions {
 
 function formatDiagnostic(diagnostic: ts.Diagnostic): string {
   return ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')
+}
+
+function isInsideNodeModules(filePath: string): boolean {
+  return filePath.includes(`${path.sep}node_modules${path.sep}`)
 }
