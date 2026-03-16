@@ -1,11 +1,14 @@
-export { analyzeDependencies, graphToSerializableTree } from './analyzer.js'
+export { analyzeDependencies } from './analyzers/import/index.js'
+export { analyzeReactUsage } from './analyzers/react/index.js'
 export {
-  analyzeReactUsage,
+  getFilteredUsages,
+  getReactUsageEntries,
   getReactUsageRoots,
-  graphToSerializableReactTree,
-} from './react-analyzer.js'
-export { printReactUsageTree } from './react-tree.js'
-export { printDependencyTree } from './tree.js'
+} from './analyzers/react/queries.js'
+export { printDependencyTree } from './output/ascii/import.js'
+export { printReactUsageTree } from './output/ascii/react.js'
+export { graphToSerializableTree } from './output/json/import.js'
+export { graphToSerializableReactTree } from './output/json/react.js'
 export type {
   AnalyzeOptions,
   ColorMode,
