@@ -123,9 +123,10 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
             'component',
           )
           if (targetId !== undefined && targetId !== symbol.id) {
-            usages.set(`render:${targetId}`, {
+            usages.set(`render:${targetId}:${referenceName}`, {
               kind: 'render',
               target: targetId,
+              referenceName,
             })
           }
         })
@@ -138,9 +139,10 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
             'hook',
           )
           if (targetId !== undefined && targetId !== symbol.id) {
-            usages.set(`hook:${targetId}`, {
+            usages.set(`hook:${targetId}:${referenceName}`, {
               kind: 'hook-call',
               target: targetId,
+              referenceName,
             })
           }
         })
@@ -183,6 +185,7 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
         const key = `${entry.location.filePath}:${entry.location.line}:${entry.location.column}:${targetId}`
         entriesByKey.set(key, {
           target: targetId,
+          referenceName: entry.referenceName,
           location: entry.location,
         })
       }

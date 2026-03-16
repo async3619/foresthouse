@@ -21,6 +21,7 @@ interface SerializedReactUsageNode {
 
 interface SerializedReactUsageEntry {
   readonly targetId: string
+  readonly referenceName: string
   readonly filePath: string
   readonly line: number
   readonly column: number
@@ -30,6 +31,7 @@ interface SerializedReactUsageEntry {
 interface SerializedReactUsageEdge {
   readonly kind: import('../../types/react-usage-edge.js').ReactUsageEdge['kind']
   readonly targetId: string
+  readonly referenceName: string
   readonly node: SerializedReactUsageNode
 }
 
@@ -100,6 +102,7 @@ function serializeReactUsageNode(
     usages: getFilteredUsages(node, graph, filter).map((usage) => ({
       kind: usage.kind,
       targetId: usage.target,
+      referenceName: usage.referenceName,
       node: serializeReactUsageNode(usage.target, graph, filter, nextVisited),
     })),
   }
@@ -112,6 +115,7 @@ function serializeReactUsageEntry(
 ): SerializedReactUsageEntry {
   return {
     targetId: entry.target,
+    referenceName: entry.referenceName,
     filePath: toDisplayPath(entry.location.filePath, graph.cwd),
     line: entry.location.line,
     column: entry.location.column,
