@@ -1,3 +1,9 @@
+## [1.0.0-dev.17](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.16...v1.0.0-dev.17) (2026-03-16)
+
+### Features
+
+* **deps:** add deps command ([#46](https://github.com/async3619/foresthouse/issues/46)) ([9aad4b5](https://github.com/async3619/foresthouse/commit/9aad4b504246375409bbd02693f6501d57af407e))
+
 ## [1.0.0-dev.16](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.15...v1.0.0-dev.16) (2026-03-16)
 
 ### Bug Fixes
