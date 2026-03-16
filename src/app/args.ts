@@ -18,6 +18,7 @@ export interface ImportCliOptions extends BaseCliOptions {
 export interface ReactCliOptions extends BaseCliOptions {
   readonly command: 'react'
   readonly filter: ReactUsageFilter
+  readonly includeBuiltins: boolean
 }
 
 export type CliOptions = ImportCliOptions | ReactCliOptions

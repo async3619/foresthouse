@@ -1,1 +1,1 @@
-export type ReactSymbolKind = 'component' | 'hook'
+export type ReactSymbolKind = 'component' | 'hook' | 'builtin'

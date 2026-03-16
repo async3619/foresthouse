@@ -11,6 +11,10 @@ export function resolveReactReference(
   name: string,
   kind: ReactSymbolKind,
 ): string | undefined {
+  if (kind === 'builtin') {
+    return getBuiltinNodeId(name)
+  }
+
   const localSymbol = fileAnalysis.symbolsByName.get(name)
   if (localSymbol !== undefined && localSymbol.kind === kind) {
     return localSymbol.id
@@ -134,6 +138,33 @@ export function addExternalHookNodes(
   }
 }
 
+export function addBuiltinNodes(
+  fileAnalyses: ReadonlyMap<string, FileAnalysis>,
+  nodes: Map<string, ReactUsageNode>,
+): void {
+  for (const fileAnalysis of fileAnalyses.values()) {
+    fileAnalysis.entryUsages.forEach((entry) => {
+      if (entry.kind !== 'builtin') {
+        return
+      }
+
+      const builtinNode = createBuiltinNode(entry.referenceName)
+      if (!nodes.has(builtinNode.id)) {
+        nodes.set(builtinNode.id, builtinNode)
+      }
+    })
+
+    fileAnalysis.symbolsById.forEach((symbol) => {
+      symbol.builtinReferences.forEach((name) => {
+        const builtinNode = createBuiltinNode(name)
+        if (!nodes.has(builtinNode.id)) {
+          nodes.set(builtinNode.id, builtinNode)
+        }
+      })
+    })
+  }
+}
+
 function createExternalHookNode(
   binding: ImportBinding,
   localName: string,
@@ -150,11 +181,26 @@ function createExternalHookNode(
   }
 }
 
+function createBuiltinNode(name: string): ReactUsageNode {
+  return {
+    id: getBuiltinNodeId(name),
+    name,
+    kind: 'builtin',
+    filePath: 'html',
+    exportNames: [],
+    usages: [],
+  }
+}
+
 function getExternalHookNodeId(
   binding: ImportBinding,
   localName: string,
 ): string {
   return `external:${binding.sourceSpecifier}#hook:${getExternalHookName(binding, localName)}`
+}
+
+export function getBuiltinNodeId(name: string): string {
+  return `builtin:${name}`
 }
 
 function getExternalHookName(

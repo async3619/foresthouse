@@ -22,6 +22,7 @@ export interface PendingReactUsageNode {
   readonly exportNames: Set<string>
   readonly componentReferences: Set<string>
   readonly hookReferences: Set<string>
+  readonly builtinReferences: Set<string>
 }
 
 export interface FileAnalysis {
@@ -41,6 +42,7 @@ export function analyzeReactFile(
   sourceText: string,
   includeNestedRenderEntries: boolean,
   sourceDependencies: ReadonlyMap<string, string>,
+  includeBuiltins: boolean,
 ): FileAnalysis {
   const symbolsByName = new Map<string, PendingReactUsageNode>()
 
@@ -53,7 +55,7 @@ export function analyzeReactFile(
   const reExportBindingsByName = new Map<string, ImportBinding>()
   const exportAllBindings: ImportBinding[] = []
   const directEntryUsages = includeNestedRenderEntries
-    ? collectEntryUsages(program, filePath, sourceText)
+    ? collectEntryUsages(program, filePath, sourceText, includeBuiltins)
     : []
 
   program.body.forEach((statement) => {
@@ -69,7 +71,7 @@ export function analyzeReactFile(
   })
 
   symbolsByName.forEach((symbol) => {
-    analyzeSymbolUsages(symbol)
+    analyzeSymbolUsages(symbol, includeBuiltins)
   })
 
   const entryUsages =

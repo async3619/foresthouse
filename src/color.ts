@@ -6,6 +6,7 @@ import type { ReactSymbolKind } from './types/react-symbol-kind.js'
 const ANSI_RESET = '\u001B[0m'
 const ANSI_COMPONENT = '\u001B[36m'
 const ANSI_HOOK = '\u001B[35m'
+const ANSI_BUILTIN = '\u001B[34m'
 const ANSI_MUTED = '\u001B[38;5;244m'
 const ANSI_UNUSED = '\u001B[38;5;214m'
 
@@ -67,7 +68,15 @@ export function formatReactSymbolName(
   name: string,
   kind: ReactSymbolKind,
 ): string {
-  return kind === 'component' ? `<${name} />` : `${name}()`
+  if (kind === 'component') {
+    return `<${name} />`
+  }
+
+  if (kind === 'hook') {
+    return `${name}()`
+  }
+
+  return `<${name}>`
 }
 export function colorizeReactLabel(
   text: string,
@@ -90,5 +99,13 @@ export function colorizeMuted(text: string, enabled: boolean): string {
 }
 
 function getReactSymbolColor(kind: ReactSymbolKind): string {
-  return kind === 'component' ? ANSI_COMPONENT : ANSI_HOOK
+  if (kind === 'component') {
+    return ANSI_COMPONENT
+  }
+
+  if (kind === 'hook') {
+    return ANSI_HOOK
+  }
+
+  return ANSI_BUILTIN
 }

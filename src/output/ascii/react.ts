@@ -172,9 +172,13 @@ function formatReactNodeLabel(
       )} ${colorizeReactLabel(`[${node.kind}]`, node.kind, color)}`
     : formatReactSymbolLabel(node.name, node.kind, color)
 
-  return `${label} (${toDisplayPath(node.filePath, cwd)})`
+  return `${label} (${formatReactNodeFilePath(node, cwd)})`
 }
 
 function formatReactEntryLabel(entry: ReactUsageEntry, cwd: string): string {
   return `${toDisplayPath(entry.location.filePath, cwd)}:${entry.location.line}:${entry.location.column}`
+}
+
+function formatReactNodeFilePath(node: ReactUsageNode, cwd: string): string {
+  return node.kind === 'builtin' ? 'html' : toDisplayPath(node.filePath, cwd)
 }
