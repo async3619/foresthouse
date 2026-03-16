@@ -3,4 +3,5 @@ export interface AnalyzeOptions {
   readonly configPath?: string
   readonly expandWorkspaces?: boolean
   readonly projectOnly?: boolean
+  readonly includeBuiltins?: boolean
 }

@@ -69,7 +69,8 @@ src/main.ts
 - `--cwd <path>`: working directory for resolving the entry file and config
 - `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
 - `--nextjs`: allow omitting the explicit React entry file and discover Next.js page entries relative to `--cwd` or the current directory
-- `--filter <component|hook>`: limit the output to a specific React symbol kind
+- `--filter <component|hook|builtin>`: limit the output to a specific React symbol kind
+- `--builtin`: include built-in HTML nodes such as `button` and `div`
 - `--no-workspaces`: stop at sibling workspace package boundaries instead of expanding them
 - `--project-only`: restrict traversal to the active `tsconfig.json` or `jsconfig.json` project
 - `--json`: print a JSON tree instead of ASCII output

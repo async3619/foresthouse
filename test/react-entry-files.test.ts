@@ -46,6 +46,7 @@ describe('Next.js React entry discovery', () => {
         projectOnly: false,
         json: false,
         filter: 'all',
+        includeBuiltins: false,
         nextjs: true,
       }),
     ).toEqual(['pages/index.tsx'])

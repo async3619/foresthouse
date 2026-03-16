@@ -20,6 +20,7 @@ export interface ReactCliOptions extends BaseCliOptions {
   readonly entryFile: string | undefined
   readonly filter: ReactUsageFilter
   readonly nextjs: boolean
+  readonly includeBuiltins: boolean
 }
 
 export type CliOptions = ImportCliOptions | ReactCliOptions

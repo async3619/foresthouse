@@ -84,7 +84,7 @@ function serializeReactUsageNode(
       id: node.id,
       name: node.name,
       symbolKind: 'circular',
-      filePath: toDisplayPath(node.filePath, graph.cwd),
+      filePath: formatReactNodeFilePath(node.filePath, node.kind, graph.cwd),
       exportNames: node.exportNames,
       usages: [],
     }
@@ -97,7 +97,7 @@ function serializeReactUsageNode(
     id: node.id,
     name: node.name,
     symbolKind: node.kind,
-    filePath: toDisplayPath(node.filePath, graph.cwd),
+    filePath: formatReactNodeFilePath(node.filePath, node.kind, graph.cwd),
     exportNames: node.exportNames,
     usages: getFilteredUsages(node, graph, filter).map((usage) => ({
       kind: usage.kind,
@@ -121,4 +121,12 @@ function serializeReactUsageEntry(
     column: entry.location.column,
     node: serializeReactUsageNode(entry.target, graph, filter, new Set()),
   }
+}
+
+function formatReactNodeFilePath(
+  filePath: string,
+  kind: import('../../types/react-symbol-kind.js').ReactSymbolKind,
+  cwd: string,
+): string {
+  return kind === 'builtin' ? 'html' : toDisplayPath(filePath, cwd)
 }

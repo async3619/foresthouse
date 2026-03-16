@@ -79,6 +79,7 @@ describe('main', () => {
       '--no-workspaces',
       '--project-only',
       '--json',
+      '--builtin',
       '--filter',
       'hook',
     ])
@@ -92,6 +93,7 @@ describe('main', () => {
       projectOnly: true,
       json: true,
       filter: 'hook',
+      includeBuiltins: true,
       nextjs: false,
     })
   })
@@ -108,6 +110,7 @@ describe('main', () => {
       projectOnly: false,
       json: false,
       filter: 'all',
+      includeBuiltins: false,
       nextjs: false,
     })
   })
@@ -124,6 +127,7 @@ describe('main', () => {
       projectOnly: false,
       json: false,
       filter: 'all',
+      includeBuiltins: false,
       nextjs: true,
     })
   })
@@ -140,6 +144,7 @@ describe('main', () => {
       projectOnly: false,
       json: false,
       filter: 'all',
+      includeBuiltins: false,
       nextjs: true,
     })
   })
