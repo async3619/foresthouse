@@ -1,17 +1,15 @@
-import { formatReactSymbolLabel, resolveColorSupport } from './color.js'
-import { toDisplayPath } from './path-utils.js'
 import {
   getFilteredUsages,
   getReactUsageEntries,
   getReactUsageRoots,
-} from './react-analyzer.js'
-import type {
-  PrintReactTreeOptions,
-  ReactUsageEdge,
-  ReactUsageEntry,
-  ReactUsageGraph,
-  ReactUsageNode,
-} from './types.js'
+} from '../../analyzers/react/queries.js'
+import { formatReactSymbolLabel, resolveColorSupport } from '../../color.js'
+import type { PrintReactTreeOptions } from '../../types/print-react-tree-options.js'
+import type { ReactUsageEdge } from '../../types/react-usage-edge.js'
+import type { ReactUsageEntry } from '../../types/react-usage-entry.js'
+import type { ReactUsageGraph } from '../../types/react-usage-graph.js'
+import type { ReactUsageNode } from '../../types/react-usage-node.js'
+import { toDisplayPath } from '../../utils/to-display-path.js'
 
 export function printReactUsageTree(
   graph: ReactUsageGraph,

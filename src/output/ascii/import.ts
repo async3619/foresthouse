@@ -1,10 +1,8 @@
-import { colorizeUnusedMarker, resolveColorSupport } from './color.js'
-import { toDisplayPath } from './path-utils.js'
-import type {
-  DependencyEdge,
-  DependencyGraph,
-  PrintTreeOptions,
-} from './types.js'
+import { colorizeUnusedMarker, resolveColorSupport } from '../../color.js'
+import type { DependencyEdge } from '../../types/dependency-edge.js'
+import type { DependencyGraph } from '../../types/dependency-graph.js'
+import type { PrintTreeOptions } from '../../types/print-tree-options.js'
+import { toDisplayPath } from '../../utils/to-display-path.js'
 
 export function printDependencyTree(
   graph: DependencyGraph,
@@ -29,19 +27,19 @@ export function printDependencyTree(
   )
 
   rootDependencies.forEach((dependency, index) => {
-    const isLast = index === rootDependencies.length - 1
-    const lines = renderDependency(
-      dependency,
-      graph,
-      visited,
-      '',
-      isLast,
-      includeExternals,
-      omitUnused,
-      color,
-      cwd,
+    rootLines.push(
+      ...renderDependency(
+        dependency,
+        graph,
+        visited,
+        '',
+        index === rootDependencies.length - 1,
+        includeExternals,
+        omitUnused,
+        color,
+        cwd,
+      ),
     )
-    rootLines.push(...lines)
   })
 
   return rootLines.join('\n')
@@ -86,14 +84,13 @@ function renderDependency(
   )
 
   childDependencies.forEach((childDependency, index) => {
-    const isChildLast = index === childDependencies.length - 1
     childLines.push(
       ...renderDependency(
         childDependency,
         graph,
         nextVisited,
         nextPrefix,
-        isChildLast,
+        index === childDependencies.length - 1,
         includeExternals,
         omitUnused,
         color,

@@ -1,6 +1,7 @@
 import process from 'node:process'
 
-import type { ColorMode, ReactSymbolKind } from './types.js'
+import type { ColorMode } from './types/color-mode.js'
+import type { ReactSymbolKind } from './types/react-symbol-kind.js'
 
 const ANSI_RESET = '\u001B[0m'
 const ANSI_COMPONENT = '\u001B[36m'
