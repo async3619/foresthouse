@@ -1,3 +1,9 @@
+## [1.0.0-dev.16](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.15...v1.0.0-dev.16) (2026-03-16)
+
+### Bug Fixes
+
+* **react:** include generated components in usage tree ([#45](https://github.com/async3619/foresthouse/issues/45)) ([9ac00c6](https://github.com/async3619/foresthouse/commit/9ac00c68fc1b17e7d3bab4c3c3625b3ea28d07e7))
+
 ## [1.0.0-dev.15](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.14...v1.0.0-dev.15) (2026-03-16)
 
 ### Features
