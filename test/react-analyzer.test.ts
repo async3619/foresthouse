@@ -42,7 +42,59 @@ describe('analyzeReactUsage', () => {
     expect(output).toContain(
       'usePanelState() as usePanelStateAlias [hook] (src/hooks/usePanelState.ts)',
     )
+    expect(output).not.toContain('<button> [builtin] (html)')
     expect(output).not.toContain('<Current /> [component]')
+  })
+
+  it('can include built-in HTML nodes when requested', () => {
+    const graph = analyzeReactUsage('src/main.tsx', {
+      cwd: fixtureDirectory,
+      includeBuiltins: true,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+    })
+    const jsonTree = graphToSerializableReactTree(graph)
+
+    expect(output).toContain(
+      '<Button /> as PrimaryButton [component] (src/components/Button.tsx)',
+    )
+    expect(output).toContain('<button> [builtin] (html)')
+    expect(jsonTree).toMatchObject({
+      roots: expect.arrayContaining([
+        expect.objectContaining({
+          name: 'AppShell',
+          usages: expect.arrayContaining([
+            expect.objectContaining({
+              referenceName: 'PrimaryPanel',
+              node: expect.objectContaining({
+                name: 'Panel',
+                usages: expect.arrayContaining([
+                  expect.objectContaining({
+                    referenceName: 'PrimaryButton',
+                    node: expect.objectContaining({
+                      name: 'Button',
+                      usages: expect.arrayContaining([
+                        expect.objectContaining({
+                          kind: 'render',
+                          referenceName: 'button',
+                          node: expect.objectContaining({
+                            name: 'button',
+                            symbolKind: 'builtin',
+                            filePath: 'html',
+                          }),
+                        }),
+                      ]),
+                    }),
+                  }),
+                ]),
+              }),
+            }),
+          ]),
+        }),
+      ]),
+    })
   })
 
   it('can filter the tree by component or hook', () => {
@@ -245,6 +297,7 @@ describe('analyzeReactUsage', () => {
   it('can colorize component and hook labels when requested', () => {
     const graph = analyzeReactUsage('src/main.tsx', {
       cwd: fixtureDirectory,
+      includeBuiltins: true,
     })
 
     const output = printReactUsageTree(graph, {
@@ -253,6 +306,7 @@ describe('analyzeReactUsage', () => {
 
     expect(output).toContain('\u001B[36m<AppShell /> [component]\u001B[0m')
     expect(output).toContain('\u001B[35museFeature() [hook]\u001B[0m')
+    expect(output).toContain('\u001B[34m<button> [builtin]\u001B[0m')
     expect(output).toContain(
       '\u001B[36m<Panel />\u001B[0m \u001B[38;5;244mas PrimaryPanel\u001B[0m \u001B[36m[component]\u001B[0m',
     )

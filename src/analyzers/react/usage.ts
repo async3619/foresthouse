@@ -1,12 +1,16 @@
 import type { PendingReactUsageNode } from './file.js'
 import {
+  getBuiltinReferenceName,
   getComponentReferenceName,
   getCreateElementComponentReferenceName,
   getHookReferenceName,
   walkReactUsageTree,
 } from './walk.js'
 
-export function analyzeSymbolUsages(symbol: PendingReactUsageNode): void {
+export function analyzeSymbolUsages(
+  symbol: PendingReactUsageNode,
+  includeBuiltins: boolean,
+): void {
   const root =
     symbol.declaration.type === 'ArrowFunctionExpression'
       ? symbol.declaration.body
@@ -21,6 +25,13 @@ export function analyzeSymbolUsages(symbol: PendingReactUsageNode): void {
       const name = getComponentReferenceName(node)
       if (name !== undefined) {
         symbol.componentReferences.add(name)
+      }
+
+      if (includeBuiltins) {
+        const builtinName = getBuiltinReferenceName(node)
+        if (builtinName !== undefined) {
+          symbol.builtinReferences.add(builtinName)
+        }
       }
       return
     }

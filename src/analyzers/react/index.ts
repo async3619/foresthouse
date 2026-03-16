@@ -13,9 +13,11 @@ import { BaseAnalyzer } from '../base.js'
 import { analyzeDependencies } from '../import/index.js'
 import { analyzeReactFile } from './file.js'
 import {
+  addBuiltinNodes,
   addExternalHookNodes,
   compareReactNodeIds,
   compareReactUsageEntries,
+  getBuiltinNodeId,
   resolveReactReference,
 } from './references.js'
 
@@ -78,6 +80,7 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
           sourceText,
           filePath === dependencyGraph.entryId,
           sourceDependencies,
+          this.options.includeBuiltins === true,
         ),
       )
     }
@@ -104,6 +107,9 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
     }
 
     addExternalHookNodes(fileAnalyses, nodes)
+    if (this.options.includeBuiltins === true) {
+      addBuiltinNodes(fileAnalyses, nodes)
+    }
     return nodes
   }
 
@@ -146,6 +152,17 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
             })
           }
         })
+
+        if (this.options.includeBuiltins === true) {
+          symbol.builtinReferences.forEach((referenceName) => {
+            const targetId = getBuiltinNodeId(referenceName)
+            usages.set(`render:${targetId}:${referenceName}`, {
+              kind: 'render',
+              target: targetId,
+              referenceName,
+            })
+          })
+        }
 
         const node = nodes.get(symbol.id)
         if (node === undefined) {

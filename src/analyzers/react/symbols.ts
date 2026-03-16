@@ -130,5 +130,6 @@ function createPendingSymbol(
     exportNames: new Set<string>(),
     componentReferences: new Set<string>(),
     hookReferences: new Set<string>(),
+    builtinReferences: new Set<string>(),
   }
 }

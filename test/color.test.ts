@@ -16,12 +16,15 @@ describe('color helpers', () => {
     )
   })
 
-  it('uses different colors for components and hooks', () => {
+  it('uses different colors for components, hooks, and builtins', () => {
     expect(formatReactSymbolLabel('Panel', 'component', true)).toBe(
       '\u001B[36m<Panel /> [component]\u001B[0m',
     )
     expect(formatReactSymbolLabel('usePanelState', 'hook', true)).toBe(
       '\u001B[35musePanelState() [hook]\u001B[0m',
+    )
+    expect(formatReactSymbolLabel('button', 'builtin', true)).toBe(
+      '\u001B[34m<button> [builtin]\u001B[0m',
     )
   })
 

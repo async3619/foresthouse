@@ -115,6 +115,11 @@ export function getComponentReferenceName(
   return name !== undefined && isComponentName(name) ? name : undefined
 }
 
+export function getBuiltinReferenceName(node: JSXElement): string | undefined {
+  const name = getJsxName(node.openingElement.name)
+  return name !== undefined && isIntrinsicElementName(name) ? name : undefined
+}
+
 export function getHookReferenceName(node: CallExpression): string | undefined {
   const calleeName = getIdentifierName(node.callee)
   return calleeName !== undefined && isHookName(calleeName)
@@ -143,6 +148,10 @@ export function isHookName(name: string): boolean {
 
 export function isComponentName(name: string): boolean {
   return /^[A-Z]/.test(name)
+}
+
+function isIntrinsicElementName(name: string): boolean {
+  return /^[a-z]/.test(name)
 }
 
 function returnsReactElement(

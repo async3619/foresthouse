@@ -5,6 +5,7 @@ import type { ReactSymbolKind } from '../../types/react-symbol-kind.js'
 import type { ReactUsageLocation } from '../../types/react-usage-location.js'
 import {
   FUNCTION_NODE_TYPES,
+  getBuiltinReferenceName,
   getComponentReferenceName,
   getCreateElementComponentReferenceName,
   getHookReferenceName,
@@ -21,11 +22,18 @@ export function collectEntryUsages(
   program: Program,
   filePath: string,
   sourceText: string,
+  includeBuiltins: boolean,
 ): PendingReactUsageEntry[] {
   const entries = new Map<string, PendingReactUsageEntry>()
 
   program.body.forEach((statement) => {
-    collectStatementEntryUsages(statement, filePath, sourceText, entries)
+    collectStatementEntryUsages(
+      statement,
+      filePath,
+      sourceText,
+      entries,
+      includeBuiltins,
+    )
   })
 
   return [...entries.values()].sort(comparePendingReactUsageEntries)
@@ -36,8 +44,16 @@ function collectStatementEntryUsages(
   filePath: string,
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
+  includeBuiltins: boolean,
 ): void {
-  collectNodeEntryUsages(statement, filePath, sourceText, entries, false)
+  collectNodeEntryUsages(
+    statement,
+    filePath,
+    sourceText,
+    entries,
+    includeBuiltins,
+    false,
+  )
 }
 
 function collectNodeEntryUsages(
@@ -45,6 +61,7 @@ function collectNodeEntryUsages(
   filePath: string,
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
+  includeBuiltins: boolean,
   hasComponentAncestor: boolean,
 ): void {
   if (FUNCTION_NODE_TYPES.has(node.type)) {
@@ -65,6 +82,19 @@ function collectNodeEntryUsages(
         )
       }
       nextHasComponentAncestor = true
+    } else if (includeBuiltins) {
+      const builtinName = getBuiltinReferenceName(node)
+      if (builtinName !== undefined) {
+        if (!hasComponentAncestor) {
+          addPendingReactUsageEntry(
+            entries,
+            builtinName,
+            'builtin',
+            createReactUsageLocation(filePath, sourceText, node.start),
+          )
+        }
+        nextHasComponentAncestor = true
+      }
     }
   } else if (node.type === 'CallExpression') {
     const hookReference = getHookReferenceName(node)
@@ -103,6 +133,7 @@ function collectNodeEntryUsages(
       filePath,
       sourceText,
       entries,
+      includeBuiltins,
       nextHasComponentAncestor,
     )
   })
@@ -113,6 +144,7 @@ function collectEntryUsageChild(
   filePath: string,
   sourceText: string,
   entries: Map<string, PendingReactUsageEntry>,
+  includeBuiltins: boolean,
   hasComponentAncestor: boolean,
 ): void {
   if (Array.isArray(value)) {
@@ -122,6 +154,7 @@ function collectEntryUsageChild(
         filePath,
         sourceText,
         entries,
+        includeBuiltins,
         hasComponentAncestor,
       )
     })
@@ -137,6 +170,7 @@ function collectEntryUsageChild(
     filePath,
     sourceText,
     entries,
+    includeBuiltins,
     hasComponentAncestor,
   )
 }

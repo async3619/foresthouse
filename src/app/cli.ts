@@ -80,8 +80,9 @@ class CliMain {
       )
       .option(
         '--filter <mode>',
-        'Limit output to `component` or `hook` usages.',
+        'Limit output to `component`, `hook`, or `builtin` usages.',
       )
+      .option('--builtin', 'Include built-in HTML nodes in the React tree.')
       .option(
         '--no-workspaces',
         'Do not expand sibling workspace packages into source subtrees.',
@@ -148,6 +149,7 @@ interface ParsedImportCliOptions extends ParsedBaseCliOptions {
 
 interface ParsedReactCliOptions extends ParsedBaseCliOptions {
   readonly filter?: string
+  readonly builtin?: boolean
 }
 
 function normalizeImportCliOptions(
@@ -180,6 +182,7 @@ function normalizeReactCliOptions(
     projectOnly: options.projectOnly === true,
     json: options.json === true,
     filter: normalizeReactFilter(options.filter),
+    includeBuiltins: options.builtin === true,
   }
 }
 
@@ -215,7 +218,7 @@ function normalizeReactFilter(
     return 'all'
   }
 
-  if (filter === 'component' || filter === 'hook') {
+  if (filter === 'component' || filter === 'hook' || filter === 'builtin') {
     return filter
   }
 
