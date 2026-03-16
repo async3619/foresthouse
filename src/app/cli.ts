@@ -48,6 +48,10 @@ class CliMain {
         'Analyze package.json dependencies from a package directory.',
       )
       .usage('deps <directory> [options]')
+      .option(
+        '--diff <git-ref-or-range>',
+        'Show only dependency-tree changes relative to a Git revision or range.',
+      )
       .option('--json', 'Print the package tree as JSON.')
       .action((directory: string, rawOptions: ParsedDepsCliOptions) => {
         runCli(normalizeDepsCliOptions(directory, rawOptions))
@@ -167,6 +171,7 @@ interface ParsedBaseCliOptions {
 }
 
 interface ParsedDepsCliOptions {
+  readonly diff?: string
   readonly json?: boolean
 }
 
@@ -189,6 +194,7 @@ function normalizeDepsCliOptions(
   return {
     command: 'deps',
     directory,
+    diff: options.diff,
     cwd: undefined,
     configPath: undefined,
     expandWorkspaces: true,
