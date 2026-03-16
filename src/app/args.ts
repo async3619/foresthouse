@@ -1,7 +1,6 @@
 import type { ReactUsageFilter } from '../types/react-usage-filter.js'
 
 interface BaseCliOptions {
-  readonly entryFile: string
   readonly cwd: string | undefined
   readonly configPath: string | undefined
   readonly expandWorkspaces: boolean
@@ -11,13 +10,16 @@ interface BaseCliOptions {
 
 export interface ImportCliOptions extends BaseCliOptions {
   readonly command: 'import'
+  readonly entryFile: string
   readonly includeExternals: boolean
   readonly omitUnused: boolean
 }
 
 export interface ReactCliOptions extends BaseCliOptions {
   readonly command: 'react'
+  readonly entryFile: string | undefined
   readonly filter: ReactUsageFilter
+  readonly nextjs: boolean
 }
 
 export type CliOptions = ImportCliOptions | ReactCliOptions

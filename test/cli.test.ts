@@ -92,6 +92,7 @@ describe('main', () => {
       projectOnly: true,
       json: true,
       filter: 'hook',
+      nextjs: false,
     })
   })
 
@@ -107,6 +108,39 @@ describe('main', () => {
       projectOnly: false,
       json: false,
       filter: 'all',
+      nextjs: false,
+    })
+  })
+
+  it('allows react --nextjs without an explicit entry file', () => {
+    main('1.2.3', ['react', '--nextjs', '--cwd', 'test/fixtures/nextjs-mode'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'react',
+      entryFile: undefined,
+      cwd: 'test/fixtures/nextjs-mode',
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      json: false,
+      filter: 'all',
+      nextjs: true,
+    })
+  })
+
+  it('preserves an explicit react entry when --nextjs is also provided', () => {
+    main('1.2.3', ['react', 'pages/index.tsx', '--nextjs'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'react',
+      entryFile: 'pages/index.tsx',
+      cwd: undefined,
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      json: false,
+      filter: 'all',
+      nextjs: true,
     })
   })
 
@@ -186,6 +220,16 @@ describe('main', () => {
     expect(runCli).not.toHaveBeenCalled()
     expect(stderrWrite).toHaveBeenCalledWith(
       'foresthouse: Unknown React filter: widget\n',
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('reports a missing react entry when --nextjs is not enabled', () => {
+    main('1.2.3', ['react'])
+
+    expect(runCli).not.toHaveBeenCalled()
+    expect(stderrWrite).toHaveBeenCalledWith(
+      'foresthouse: Missing React entry file. Use `foresthouse react <entry-file>` or `foresthouse react --nextjs`.\n',
     )
     expect(process.exitCode).toBe(1)
   })
