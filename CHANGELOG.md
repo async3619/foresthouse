@@ -1,3 +1,9 @@
+## [1.0.0-dev.22](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.21...v1.0.0-dev.22) (2026-03-18)
+
+### Bug Fixes
+
+* avoid re-expanding shared import subgraphs ([#59](https://github.com/async3619/foresthouse/issues/59)) ([5961d00](https://github.com/async3619/foresthouse/commit/5961d002a1d21a15514c0e4c11285fc467e6d3b7))
+
 ## [1.0.0-dev.21](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.20...v1.0.0-dev.21) (2026-03-18)
 
 ### Features
