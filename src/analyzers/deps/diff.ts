@@ -729,10 +729,7 @@ function resolveNodeChange(
 
   const packagePath = location.afterPath ?? location.beforePath
 
-  if (
-    packagePath !== undefined &&
-    changedPackagePaths.has(packagePath)
-  ) {
+  if (packagePath !== undefined && changedPackagePaths.has(packagePath)) {
     return 'changed'
   }
 
