@@ -48,6 +48,12 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+      - name: Unit Tests
+        run: pnpm run test:unit
+
+      - name: E2E Tests
+        run: pnpm run test:e2e
+
       - name: Build
         run: pnpm run build
 
