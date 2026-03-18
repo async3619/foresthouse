@@ -54,6 +54,16 @@ jobs:
       - name: E2E Tests
         run: pnpm run test:e2e
 
+      - name: Coverage
+        run: pnpm run test:coverage
+
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Build
         run: pnpm run build
 
