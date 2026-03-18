@@ -1,0 +1,8 @@
+{
+  "name": "@repo/ui",
+  "private": true,
+  "dependencies": {
+    "@repo/config": "workspace:*",
+    "clsx": "^2.1.1"
+  }
+}
