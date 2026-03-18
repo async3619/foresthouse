@@ -570,6 +570,117 @@ describe('analyzePackageDependencies', () => {
     })
   })
 
+  it('treats workspace source changes as package changes in monorepo diffs', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/ui': 'workspace:*',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+              dependencies: {
+                clsx: '^2.1.1',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/src/index.ts': 'export const button = "primary"\n',
+        },
+      },
+      {
+        message: 'update workspace source',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/ui': 'workspace:*',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+              dependencies: {
+                clsx: '^2.1.1',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/src/index.ts': 'export const button = "secondary"\n',
+        },
+      },
+    ])
+
+    const graph = analyzePackageDependencyDiff(
+      path.join(repositoryRoot, 'apps', 'web'),
+      'HEAD~1..HEAD',
+    )
+    const output = printPackageDependencyDiffTree(graph, {
+      color: false,
+    })
+    const jsonTree = diffGraphToSerializablePackageTree(graph)
+
+    expect(output).toBe(
+      ['~ @repo/web', '└─ ~ packages/ui (workspace:*)'].join('\n'),
+    )
+    expect(jsonTree).toMatchObject({
+      kind: 'root',
+      label: '@repo/web',
+      packageName: '@repo/web',
+      path: 'apps/web',
+      change: 'changed',
+      dependencies: [
+        {
+          kind: 'workspace',
+          name: '@repo/ui',
+          change: 'unchanged',
+          after: {
+            target: 'packages/ui',
+            specifier: 'workspace:*',
+          },
+          node: {
+            kind: 'workspace',
+            path: 'packages/ui',
+            change: 'changed',
+          },
+        },
+      ],
+    })
+  })
+
   it('reports invalid Git revisions clearly', () => {
     const repositoryRoot = createGitRepository([
       {
