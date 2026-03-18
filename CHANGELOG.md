@@ -1,3 +1,9 @@
+## [1.0.0-dev.19](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.18...v1.0.0-dev.19) (2026-03-18)
+
+### Features
+
+* propagate workspace package changes in deps --diff ([#52](https://github.com/async3619/foresthouse/issues/52)) ([4dbe6ca](https://github.com/async3619/foresthouse/commit/4dbe6ca94815c82cb1fdf15539ab720298f0dda2))
+
 ## [1.0.0-dev.18](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.17...v1.0.0-dev.18) (2026-03-16)
 
 ### Features
