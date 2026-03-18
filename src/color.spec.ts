@@ -5,7 +5,7 @@ import {
   colorizeUnusedMarker,
   formatReactSymbolLabel,
   resolveColorSupport,
-} from '../src/color.js'
+} from './color.js'
 
 describe('color helpers', () => {
   it('can colorize the unused marker in isolation', () => {

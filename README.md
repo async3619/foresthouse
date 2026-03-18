@@ -89,8 +89,13 @@ src/main.ts
 ```bash
 corepack enable
 pnpm install
+pnpm run test:unit
+pnpm run test:e2e
 pnpm run check
 ```
+
+- Unit tests live next to source files as `src/**/*.spec.ts`.
+- End-to-end command tests live under `e2e/`.
 
 ## Collaboration And Release Flow
 

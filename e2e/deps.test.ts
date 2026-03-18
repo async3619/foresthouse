@@ -4,8 +4,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { main } from '../src/app/cli.js'
+import { runCli } from '../src/app/run.js'
 import {
   analyzePackageDependencies,
   analyzePackageDependencyDiff,
@@ -15,19 +17,29 @@ import {
   printPackageDependencyTree,
 } from '../src/index.js'
 
+vi.mock('../src/app/run.js', () => ({
+  runCli: vi.fn(),
+}))
+
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 const singleFixtureDirectory = path.join(
   currentDirectory,
+  '..',
+  'test',
   'fixtures',
   'deps-single',
 )
 const monorepoFixtureDirectory = path.join(
   currentDirectory,
+  '..',
+  'test',
   'fixtures',
   'deps-monorepo',
 )
 const pnpmMonorepoFixtureDirectory = path.join(
   currentDirectory,
+  '..',
+  'test',
   'fixtures',
   'deps-pnpm-monorepo',
 )
@@ -36,6 +48,27 @@ const temporaryDirectories: string[] = []
 afterEach(() => {
   temporaryDirectories.splice(0).forEach((directory) => {
     fs.rmSync(directory, { recursive: true, force: true })
+  })
+})
+
+beforeEach(() => {
+  vi.mocked(runCli).mockReset()
+})
+
+describe('deps command options', () => {
+  it('passes parsed deps options to the CLI runner', () => {
+    main('1.2.3', ['deps', './packages/app', '--diff', 'HEAD~1', '--json'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'deps',
+      directory: './packages/app',
+      diff: 'HEAD~1',
+      cwd: undefined,
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      json: true,
+    })
   })
 })
 
@@ -1005,7 +1038,7 @@ function createGitRepository(
 
   temporaryDirectories.push(repositoryRoot)
 
-  runGit(repositoryRoot, ['init'])
+  runGit(repositoryRoot, ['init', '--initial-branch=main'])
   runGit(repositoryRoot, ['config', 'user.name', 'Foresthouse Tests'])
   runGit(repositoryRoot, ['config', 'user.email', 'tests@example.com'])
 
@@ -1045,5 +1078,6 @@ function runGit(repositoryRoot: string, args: readonly string[]): string {
   return execFileSync('git', args, {
     cwd: repositoryRoot,
     encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
   }).trim()
 }

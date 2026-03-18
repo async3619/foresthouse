@@ -928,6 +928,7 @@ function runGit(
 ): string {
   const output = execFileSync('git', ['-C', repositoryRoot, ...args], {
     encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
   })
 
   return options.trim === false ? output : output.trimEnd()

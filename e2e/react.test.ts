@@ -1,23 +1,201 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { main } from '../src/app/cli.js'
+import {
+  discoverNextJsPageEntries,
+  resolveReactEntryFiles,
+} from '../src/app/react-entry-files.js'
+import { runCli } from '../src/app/run.js'
 import {
   analyzeReactUsage,
   graphToSerializableReactTree,
   printReactUsageTree,
 } from '../src/index.js'
 
+vi.mock('../src/app/run.js', () => ({
+  runCli: vi.fn(),
+}))
+
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
-const fixtureDirectory = path.join(currentDirectory, 'fixtures', 'react-mode')
+const fixtureDirectory = path.join(
+  currentDirectory,
+  '..',
+  'test',
+  'fixtures',
+  'react-mode',
+)
 const monorepoFixtureDirectory = path.join(
   currentDirectory,
+  '..',
+  'test',
   'fixtures',
   'monorepo',
   'packages',
   'app',
 )
+const nextjsFixtureDirectory = path.join(
+  currentDirectory,
+  '..',
+  'test',
+  'fixtures',
+  'nextjs-mode',
+)
+
+beforeEach(() => {
+  vi.mocked(runCli).mockReset()
+})
+
+describe('react command options', () => {
+  it('passes parsed react options to the CLI runner', () => {
+    main('1.2.3', [
+      'react',
+      'src/main.tsx',
+      '--cwd',
+      'test/fixtures/react-mode',
+      '--config',
+      'tsconfig.json',
+      '--no-workspaces',
+      '--project-only',
+      '--json',
+      '--builtin',
+      '--filter',
+      'hook',
+    ])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'react',
+      entryFile: 'src/main.tsx',
+      cwd: 'test/fixtures/react-mode',
+      configPath: 'tsconfig.json',
+      expandWorkspaces: false,
+      projectOnly: true,
+      json: true,
+      filter: 'hook',
+      includeBuiltins: true,
+      nextjs: false,
+    })
+  })
+
+  it('allows react --nextjs without an explicit entry file', () => {
+    main('1.2.3', ['react', '--nextjs', '--cwd', 'test/fixtures/nextjs-mode'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'react',
+      entryFile: undefined,
+      cwd: 'test/fixtures/nextjs-mode',
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      json: false,
+      filter: 'all',
+      includeBuiltins: false,
+      nextjs: true,
+    })
+  })
+
+  it('uses all react usages by default', () => {
+    main('1.2.3', ['react', 'src/main.tsx'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'react',
+      entryFile: 'src/main.tsx',
+      cwd: undefined,
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      json: false,
+      filter: 'all',
+      includeBuiltins: false,
+      nextjs: false,
+    })
+  })
+
+  it('preserves an explicit react entry when --nextjs is also provided', () => {
+    main('1.2.3', ['react', 'pages/index.tsx', '--nextjs'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'react',
+      entryFile: 'pages/index.tsx',
+      cwd: undefined,
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      json: false,
+      filter: 'all',
+      includeBuiltins: false,
+      nextjs: true,
+    })
+  })
+})
+
+describe('react entry discovery', () => {
+  it('discovers Next.js pages from pages/, app/, src/pages/, and src/app/', () => {
+    expect(discoverNextJsPageEntries(nextjsFixtureDirectory)).toEqual([
+      'app/dashboard/page.tsx',
+      'pages/index.tsx',
+      'src/app/settings/page.tsx',
+      'src/pages/profile.tsx',
+    ])
+  })
+
+  it('prefers the explicit entry file when --nextjs is also enabled', () => {
+    expect(
+      resolveReactEntryFiles({
+        command: 'react',
+        entryFile: 'pages/index.tsx',
+        cwd: nextjsFixtureDirectory,
+        configPath: undefined,
+        expandWorkspaces: true,
+        projectOnly: false,
+        json: false,
+        filter: 'all',
+        includeBuiltins: false,
+        nextjs: true,
+      }),
+    ).toEqual(['pages/index.tsx'])
+  })
+
+  it('analyzes multiple discovered Next.js entries together', () => {
+    const entryFiles = discoverNextJsPageEntries(nextjsFixtureDirectory)
+    const graph = analyzeReactUsage(entryFiles, {
+      cwd: nextjsFixtureDirectory,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+    })
+    const jsonTree = graphToSerializableReactTree(graph)
+
+    expect(graph.entryIds).toHaveLength(4)
+    expect(output).toContain('app/dashboard/page.tsx:')
+    expect(output).toContain('pages/index.tsx:')
+    expect(output).toContain('src/app/settings/page.tsx:')
+    expect(output).toContain('src/pages/profile.tsx:')
+    expect(output).toContain(
+      '<DashboardShell /> [component] (components/DashboardShell.tsx)',
+    )
+    expect(output).toContain('useSettings() [hook] (hooks/useSettings.ts)')
+    expect(jsonTree).toMatchObject({
+      entries: [
+        expect.objectContaining({
+          filePath: 'app/dashboard/page.tsx',
+        }),
+        expect.objectContaining({
+          filePath: 'pages/index.tsx',
+        }),
+        expect.objectContaining({
+          filePath: 'src/app/settings/page.tsx',
+        }),
+        expect.objectContaining({
+          filePath: 'src/pages/profile.tsx',
+        }),
+      ],
+    })
+  })
+})
 
 describe('analyzeReactUsage', () => {
   it('builds a component and hook usage tree', () => {

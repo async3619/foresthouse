@@ -1,8 +1,10 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { main } from '../src/app/cli.js'
+import { runCli } from '../src/app/run.js'
 import {
   analyzeDependencies,
   graphToSerializableTree,
@@ -11,10 +13,22 @@ import {
 import type { DependencyEdge } from '../src/types/dependency-edge.js'
 import type { DependencyGraph } from '../src/types/dependency-graph.js'
 
+vi.mock('../src/app/run.js', () => ({
+  runCli: vi.fn(),
+}))
+
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
-const fixtureDirectory = path.join(currentDirectory, 'fixtures', 'basic')
+const fixtureDirectory = path.join(
+  currentDirectory,
+  '..',
+  'test',
+  'fixtures',
+  'basic',
+)
 const monorepoFixtureDirectory = path.join(
   currentDirectory,
+  '..',
+  'test',
   'fixtures',
   'monorepo',
   'packages',
@@ -22,9 +36,61 @@ const monorepoFixtureDirectory = path.join(
 )
 const nodeModulesConfigFixtureDirectory = path.join(
   currentDirectory,
+  '..',
+  'test',
   'fixtures',
   'node-modules-config',
 )
+
+beforeEach(() => {
+  vi.mocked(runCli).mockReset()
+})
+
+describe('import command options', () => {
+  it('passes parsed import options to the CLI runner', () => {
+    main('1.2.3', [
+      'import',
+      'src/main.tsx',
+      '--cwd',
+      'test/fixtures/react-mode',
+      '--config',
+      'tsconfig.json',
+      '--no-workspaces',
+      '--project-only',
+      '--include-externals',
+      '--no-unused',
+      '--json',
+    ])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'import',
+      entryFile: 'src/main.tsx',
+      cwd: 'test/fixtures/react-mode',
+      configPath: 'tsconfig.json',
+      expandWorkspaces: false,
+      projectOnly: true,
+      includeExternals: true,
+      omitUnused: true,
+      json: true,
+    })
+  })
+
+  it('supports import --entry', () => {
+    main('1.2.3', ['import', '--entry', 'src/main.tsx'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'import',
+      entryFile: 'src/main.tsx',
+      cwd: undefined,
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      includeExternals: false,
+      omitUnused: false,
+      json: false,
+    })
+  })
+})
 
 describe('analyzeDependencies', () => {
   it('resolves relative imports and tsconfig path aliases', () => {
