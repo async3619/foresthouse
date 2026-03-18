@@ -1,3 +1,9 @@
+## [1.0.0-dev.21](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.20...v1.0.0-dev.21) (2026-03-18)
+
+### Features
+
+* **deps:** use pnpm lockfile data for deps diff ([#57](https://github.com/async3619/foresthouse/issues/57)) ([228cbd4](https://github.com/async3619/foresthouse/commit/228cbd41c8769e7d2ab1b3df01b9c8a1e4f3f96b))
+
 ## [1.0.0-dev.20](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.19...v1.0.0-dev.20) (2026-03-18)
 
 ### Bug Fixes
