@@ -14,6 +14,7 @@ export function printDependencyTree(
   const omitUnused = options.omitUnused ?? false
   const rootLines = [toDisplayPath(graph.entryId, cwd)]
   const visited = new Set<string>([graph.entryId])
+  const expanded = new Set<string>([graph.entryId])
   const entryNode = graph.nodes.get(graph.entryId)
 
   if (entryNode === undefined) {
@@ -32,6 +33,7 @@ export function printDependencyTree(
         dependency,
         graph,
         visited,
+        expanded,
         '',
         index === rootDependencies.length - 1,
         includeExternals,
@@ -49,6 +51,7 @@ function renderDependency(
   dependency: DependencyEdge,
   graph: DependencyGraph,
   visited: ReadonlySet<string>,
+  expanded: Set<string>,
   prefix: string,
   isLast: boolean,
   includeExternals: boolean,
@@ -72,9 +75,14 @@ function renderDependency(
     return [`${branch}${label}`]
   }
 
+  if (expanded.has(dependency.target)) {
+    return [`${branch}${label} (shared)`]
+  }
+
   const nextPrefix = `${prefix}${isLast ? '   ' : '│  '}`
   const nextVisited = new Set(visited)
   nextVisited.add(dependency.target)
+  expanded.add(dependency.target)
 
   const childLines = [`${branch}${label}`]
   const childDependencies = filterDependencies(
@@ -89,6 +97,7 @@ function renderDependency(
         childDependency,
         graph,
         nextVisited,
+        expanded,
         nextPrefix,
         index === childDependencies.length - 1,
         includeExternals,

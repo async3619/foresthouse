@@ -8,11 +8,11 @@ export function graphToSerializableTree(
     readonly omitUnused?: boolean
   } = {},
 ): object {
-  const visited = new Set<string>()
   return serializeNode(
     graph.entryId,
     graph,
-    visited,
+    new Set<string>(),
+    new Set<string>(),
     options.omitUnused ?? false,
   )
 }
@@ -20,7 +20,8 @@ export function graphToSerializableTree(
 function serializeNode(
   filePath: string,
   graph: DependencyGraph,
-  visited: Set<string>,
+  visited: ReadonlySet<string>,
+  expanded: Set<string>,
   omitUnused: boolean,
 ): object {
   const node = graph.nodes.get(filePath)
@@ -42,7 +43,17 @@ function serializeNode(
     }
   }
 
-  visited.add(filePath)
+  if (expanded.has(filePath)) {
+    return {
+      path: displayPath,
+      kind: 'shared',
+      dependencies: [],
+    }
+  }
+
+  const nextVisited = new Set(visited)
+  nextVisited.add(filePath)
+  expanded.add(filePath)
 
   const dependencies = node.dependencies
     .filter((dependency) => !omitUnused || !dependency.unused)
@@ -71,7 +82,8 @@ function serializeNode(
         node: serializeNode(
           dependency.target,
           graph,
-          new Set(visited),
+          nextVisited,
+          expanded,
           omitUnused,
         ),
       }
