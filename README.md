@@ -2,36 +2,59 @@
 
 `foresthouse` is a modern TypeScript-first Node.js CLI that can print source import trees, React usage trees, and package-manifest dependency trees.
 
-## Stack
+## Installation
 
-- Node.js 24.14.0 LTS
-- TypeScript 5.9
-- `tsx` for fast TypeScript execution in development
-- `tsdown` for fast ESM builds
-- `Biome` for linting and formatting
-- `Vitest` for tests
-- `semantic-release` for automated pre-releases and releases
-- npm publishing through `semantic-release` on GitHub Actions
+```bash
+npm install -g foresthouse
+```
+
+You can also run it without a global install:
+
+```bash
+npx foresthouse --help
+pnpm dlx foresthouse --help
+yarn dlx foresthouse --help
+bunx foresthouse --help
+```
 
 ## What it does
 
-- Reads a JavaScript/TypeScript entry file (`.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`)
+- Analyzes source import trees from JavaScript and TypeScript entry files (`.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts`, `.cts`)
 - Resolves local imports, re-exports, `require()`, and string-literal dynamic `import()`
 - Honors the nearest `tsconfig.json` or `jsconfig.json`, including `baseUrl` and `paths`
 - Expands sibling workspace packages by default, including their own `tsconfig` alias rules
+- Analyzes React component and hook usage trees from explicit entry files or inferred Next.js app and pages routes
 - Reads `package.json` manifests to show package-level dependency trees for single packages and monorepos
-- Prints a tree by default, or JSON with `--json`
+- Shows dependency-tree changes relative to a Git ref or range with `foresthouse deps --diff`
+- Prints an ASCII tree by default, or JSON with `--json`
 - Colorizes ASCII output automatically when the terminal supports ANSI colors
 
 ## Usage
 
-```bash
-corepack enable
-pnpm install
-pnpm run build
-node dist/cli.mjs import src/index.ts
-node dist/cli.mjs deps .
+```text
+Usage:
+  $ foresthouse <command> [options]
+
+Commands:
+  deps <directory>     Analyze package.json dependencies from a package directory.
+  import [entry-file]  Analyze an entry file and print its dependency tree.
+  react [entry-file]   Analyze React usage from an entry file.
+
+For more info, run any command with the `--help` flag:
+  $ foresthouse deps --help
+  $ foresthouse import --help
+  $ foresthouse react --help
+
+Options:
+  -h, --help     Display this message
+  -v, --version  Display version number
 ```
+
+### Commands
+
+- `foresthouse import <entry-file>`: analyzes a JavaScript or TypeScript entry file and prints a dependency tree by following imports, re-exports, `require()`, and dynamic `import()`.
+- `foresthouse react [entry-file]`: analyzes React component, hook, and render relationships and prints a React usage tree. It also supports automatic Next.js entry discovery with `--nextjs`.
+- `foresthouse deps <directory>`: reads `package.json` manifests and workspace structure from a package directory and prints a package dependency tree. Use `--diff` to show only changes relative to a Git ref or range.
 
 ### Example
 
@@ -50,39 +73,69 @@ src/main.ts
 │  └─ [dynamic] src/widgets/chart.ts
 ```
 
-### Options
+### `foresthouse import --help`
 
-`import` command:
+Analyzes a source dependency tree from a single entry file. You can provide the entry with either a positional argument or `--entry`, and use `--json` for machine-readable output.
 
-- `foresthouse import <path>`: analyze an entry file by positional argument
-- `foresthouse import --entry <path>`: analyze an entry file by explicit option
-- `--cwd <path>`: working directory for resolving the entry file and config
-- `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
-- `--include-externals`: include packages and Node built-ins in the output
-- `--no-workspaces`: stop at sibling workspace package boundaries instead of expanding them
-- `--project-only`: restrict traversal to the active `tsconfig.json` or `jsconfig.json` project
-- `--no-unused`: omit imports that are never referenced
-- `--json`: print a JSON tree instead of ASCII output
+```text
+Usage:
+  $ foresthouse import <entry-file> [options]
 
-`react` command:
+Options:
+  --entry <path>       Entry file to analyze.
+  --cwd <path>         Working directory used for relative paths.
+  --config <path>      Explicit tsconfig.json or jsconfig.json path.
+  --include-externals  Include packages and Node built-ins in the tree.
+  --no-workspaces      Do not expand sibling workspace packages into source subtrees. (default: true)
+  --project-only       Restrict traversal to the active tsconfig.json or jsconfig.json project.
+  --no-unused          Omit imports that are never referenced. (default: true)
+  --json               Print the dependency tree as JSON.
+  -h, --help           Display this message
+```
 
-- `foresthouse react <path>`: print a React usage tree from an entry file
-- `foresthouse react --nextjs`: infer Next.js page entries from `app/`, `pages/`, `src/app/`, and `src/pages/`
-- `--cwd <path>`: working directory for resolving the entry file and config
-- `--config <path>`: use a specific `tsconfig.json` or `jsconfig.json`
-- `--nextjs`: allow omitting the explicit React entry file and discover Next.js page entries relative to `--cwd` or the current directory
-- `--filter <component|hook|builtin>`: limit the output to a specific React symbol kind
-- `--builtin`: include built-in HTML nodes such as `button` and `div`
-- `--no-workspaces`: stop at sibling workspace package boundaries instead of expanding them
-- `--project-only`: restrict traversal to the active `tsconfig.json` or `jsconfig.json` project
-- `--json`: print a JSON tree instead of ASCII output
+### `foresthouse react --help`
 
-`deps` command:
+Analyzes React component and hook usage relationships. You can provide an entry file directly, or use `--nextjs` to discover Next.js route entries automatically.
 
-- `foresthouse deps <directory>`: analyze the nearest package rooted at the given directory
-- `foresthouse deps .`: analyze the current package or repository root
-- `foresthouse deps ./packages/a`: analyze a specific workspace package directory
-- `--json`: print a JSON package tree instead of ASCII output
+```text
+Usage:
+  $ foresthouse react [entry-file] [options]
+
+Options:
+  --cwd <path>     Working directory used for relative paths.
+  --config <path>  Explicit tsconfig.json or jsconfig.json path.
+  --nextjs         Infer Next.js page entries from app/ and pages/ when no entry is provided.
+  --filter <mode>  Limit output to `component`, `hook`, or `builtin` usages.
+  --builtin        Include built-in HTML nodes in the React tree.
+  --no-workspaces  Do not expand sibling workspace packages into source subtrees. (default: true)
+  --project-only   Restrict traversal to the active tsconfig.json or jsconfig.json project.
+  --json           Print the React usage tree as JSON.
+  -h, --help       Display this message
+```
+
+### `foresthouse deps --help`
+
+Analyzes package-level dependency trees for both single-package projects and monorepos. Use `--diff` to show only dependency changes relative to a Git ref or range.
+
+```text
+Usage:
+  $ foresthouse deps <directory> [options]
+
+Options:
+  --diff <git-ref-or-range>  Show only dependency-tree changes relative to a Git revision or range.
+  --json                     Print the package tree as JSON.
+  -h, --help                 Display this message
+```
+
+Common examples:
+
+- `foresthouse import src/main.ts`
+- `foresthouse import --entry src/main.ts --cwd test/fixtures/basic`
+- `foresthouse react src/App.tsx`
+- `foresthouse react --nextjs --cwd .`
+- `foresthouse deps .`
+- `foresthouse deps ./packages/a`
+- `foresthouse deps . --diff origin/dev...HEAD`
 
 ## Development
 
@@ -96,13 +149,3 @@ pnpm run check
 
 - Unit tests live next to source files as `src/**/*.spec.ts`.
 - End-to-end command tests live under `e2e/`.
-
-## Collaboration And Release Flow
-
-- `dev` is the pre-release branch and publishes `-dev.N` builds through `semantic-release`
-- `main` is the stable release branch
-- every code change starts from a GitHub issue and lands through a pull request
-- all commits must follow Conventional Commits
-- Biome is the only formatter and linter in this repository
-- CI runs lint, typecheck, build, and release automation
-- npm publishing is configured through `semantic-release` with `NPM_TOKEN` and GitHub Actions provenance
