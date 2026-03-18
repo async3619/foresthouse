@@ -1,3 +1,9 @@
+## [1.0.0-dev.20](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.19...v1.0.0-dev.20) (2026-03-18)
+
+### Bug Fixes
+
+* clarify deps diff version changes ([#56](https://github.com/async3619/foresthouse/issues/56)) ([a1531bc](https://github.com/async3619/foresthouse/commit/a1531bc219b3a6cf737754c55510da225c6561fe))
+
 ## [1.0.0-dev.19](https://github.com/async3619/foresthouse/compare/v1.0.0-dev.18...v1.0.0-dev.19) (2026-03-18)
 
 ### Features
