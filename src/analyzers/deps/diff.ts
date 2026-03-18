@@ -13,6 +13,10 @@ import type { PackageDependencyGraph } from '../../types/package-dependency-grap
 import type { PackageManifestDependency } from '../../types/package-manifest-dependency.js'
 import { toDisplayPath } from '../../utils/to-display-path.js'
 import { analyzePackageDependencies } from './index.js'
+import {
+  loadPnpmLockImporterResolutions,
+  type PnpmLockDependencyResolution,
+} from './pnpm-lock.js'
 
 interface GitDiffComparison {
   readonly beforeTree: string
@@ -35,6 +39,8 @@ interface ComparableExternalPackageDependency {
   readonly key: string
   readonly name: string
   readonly specifier: string
+  readonly resolvedVersion?: string
+  readonly peerContext?: string
 }
 
 interface ComparableWorkspacePackageDependency {
@@ -49,6 +55,7 @@ type ComparablePackageDependency =
   | ComparableExternalPackageDependency
   | ComparableWorkspacePackageDependency
 
+const PNPM_LOCKFILE = 'pnpm-lock.yaml'
 const PNPM_WORKSPACE_FILE = 'pnpm-workspace.yaml'
 
 export function analyzePackageDependencyDiff(
@@ -320,7 +327,11 @@ function ensureSnapshotDirectory(snapshotRoot: string, filePath: string): void {
 
 function isManifestSnapshotFile(filePath: string): boolean {
   const fileName = path.posix.basename(filePath)
-  return fileName === 'package.json' || fileName === PNPM_WORKSPACE_FILE
+  return (
+    fileName === 'package.json' ||
+    fileName === PNPM_LOCKFILE ||
+    fileName === PNPM_WORKSPACE_FILE
+  )
 }
 
 function resolveSnapshotInputPath(
@@ -358,16 +369,24 @@ function tryAnalyzePackageGraph(
 function toComparableGraph(
   graph: PackageDependencyGraph,
 ): ComparablePackageDependencyGraph {
+  const pnpmLockResolutions = loadPnpmLockImporterResolutions(
+    graph.repositoryRoot,
+  )
   const nodes = new Map<string, ComparablePackageDependencyNode>()
 
   graph.nodes.forEach((node, packageDir) => {
     const packagePath = toDisplayPath(packageDir, graph.repositoryRoot)
+    const packageLockResolutions = pnpmLockResolutions?.get(packagePath)
     const dependenciesByKey = new Map<string, ComparablePackageDependency>()
 
     node.dependencies.forEach((dependency) => {
       dependenciesByKey.set(
         createDependencyKey(dependency),
-        toComparableDependency(dependency, graph.repositoryRoot),
+        toComparableDependency(
+          dependency,
+          graph.repositoryRoot,
+          packageLockResolutions?.get(dependency.name),
+        ),
       )
     })
 
@@ -391,13 +410,19 @@ function createDependencyKey(dependency: PackageManifestDependency): string {
 function toComparableDependency(
   dependency: PackageManifestDependency,
   repositoryRoot: string,
+  lockResolution: PnpmLockDependencyResolution | undefined,
 ): ComparablePackageDependency {
   if (dependency.kind === 'external') {
+    const resolvedVersion = resolveResolvedVersion(lockResolution)
+    const peerContext = resolvePeerContext(lockResolution)
+
     return {
       kind: 'external',
       key: createDependencyKey(dependency),
       name: dependency.name,
       specifier: dependency.specifier,
+      ...(resolvedVersion === undefined ? {} : { resolvedVersion }),
+      ...(peerContext === undefined ? {} : { peerContext }),
     }
   }
 
@@ -408,6 +433,38 @@ function toComparableDependency(
     specifier: dependency.specifier,
     targetPath: toDisplayPath(dependency.target, repositoryRoot),
   }
+}
+
+function resolveResolvedVersion(
+  lockResolution: PnpmLockDependencyResolution | undefined,
+): string | undefined {
+  if (lockResolution === undefined) {
+    return undefined
+  }
+
+  const version = lockResolution.version?.trim()
+
+  if (
+    version === undefined ||
+    version.length === 0 ||
+    version.startsWith('link:') ||
+    version.startsWith('file:') ||
+    version.startsWith('workspace:')
+  ) {
+    return undefined
+  }
+
+  return version
+}
+
+function resolvePeerContext(
+  lockResolution: PnpmLockDependencyResolution | undefined,
+): string | undefined {
+  const peerSuffix = lockResolution?.peerSuffix?.trim()
+
+  return peerSuffix === undefined || peerSuffix.length === 0
+    ? undefined
+    : peerSuffix
 }
 
 function diffPackageNode(
@@ -622,6 +679,18 @@ function diffDependency(
     kind: 'external',
     name: dependency.name,
     change,
+    specifierChanged: didExternalSpecifierChange(
+      beforeDependency,
+      afterDependency,
+    ),
+    resolvedVersionChanged: didExternalResolvedVersionChange(
+      beforeDependency,
+      afterDependency,
+    ),
+    peerContextChanged: didExternalPeerContextChange(
+      beforeDependency,
+      afterDependency,
+    ),
     ...(beforeDependency === undefined
       ? {}
       : { before: toDiffState(beforeDependency) }),
@@ -629,6 +698,39 @@ function diffDependency(
       ? {}
       : { after: toDiffState(afterDependency) }),
   }
+}
+
+function didExternalSpecifierChange(
+  beforeDependency: ComparablePackageDependency | undefined,
+  afterDependency: ComparablePackageDependency | undefined,
+): boolean {
+  return (
+    beforeDependency?.kind === 'external' &&
+    afterDependency?.kind === 'external' &&
+    beforeDependency.specifier !== afterDependency.specifier
+  )
+}
+
+function didExternalResolvedVersionChange(
+  beforeDependency: ComparablePackageDependency | undefined,
+  afterDependency: ComparablePackageDependency | undefined,
+): boolean {
+  return (
+    beforeDependency?.kind === 'external' &&
+    afterDependency?.kind === 'external' &&
+    beforeDependency.resolvedVersion !== afterDependency.resolvedVersion
+  )
+}
+
+function didExternalPeerContextChange(
+  beforeDependency: ComparablePackageDependency | undefined,
+  afterDependency: ComparablePackageDependency | undefined,
+): boolean {
+  return (
+    beforeDependency?.kind === 'external' &&
+    afterDependency?.kind === 'external' &&
+    beforeDependency.peerContext !== afterDependency.peerContext
+  )
 }
 
 function resolveDependencyChange(
@@ -655,7 +757,9 @@ function resolveDependencyChange(
     beforeDependency.kind === 'external' &&
     afterDependency.kind === 'external'
   ) {
-    return beforeDependency.specifier === afterDependency.specifier
+    return beforeDependency.specifier === afterDependency.specifier &&
+      beforeDependency.resolvedVersion === afterDependency.resolvedVersion &&
+      beforeDependency.peerContext === afterDependency.peerContext
       ? 'unchanged'
       : 'changed'
   }
@@ -680,6 +784,12 @@ function toDiffState(
     return {
       target: `${dependency.name}@${dependency.specifier}`,
       specifier: dependency.specifier,
+      ...(dependency.resolvedVersion === undefined
+        ? {}
+        : { resolvedVersion: dependency.resolvedVersion }),
+      ...(dependency.peerContext === undefined
+        ? {}
+        : { peerContext: dependency.peerContext }),
     }
   }
 

@@ -4,6 +4,8 @@ import type { PackageDependencyDiffNode } from './package-dependency-diff-node.j
 export interface PackageDependencyDiffState {
   readonly target: string
   readonly specifier?: string
+  readonly resolvedVersion?: string
+  readonly peerContext?: string
 }
 
 interface BasePackageDependencyDiffDependency {
@@ -16,6 +18,9 @@ interface BasePackageDependencyDiffDependency {
 export interface ExternalPackageDependencyDiff
   extends BasePackageDependencyDiffDependency {
   readonly kind: 'external'
+  readonly specifierChanged: boolean
+  readonly resolvedVersionChanged: boolean
+  readonly peerContextChanged: boolean
 }
 
 export interface WorkspacePackageDependencyDiff

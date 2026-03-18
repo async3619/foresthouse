@@ -108,6 +108,13 @@ function serializePackageDiffDependency(
     kind: dependency.kind,
     name: dependency.name,
     change: dependency.change,
+    ...(dependency.kind === 'external'
+      ? {
+          specifierChanged: dependency.specifierChanged,
+          resolvedVersionChanged: dependency.resolvedVersionChanged,
+          peerContextChanged: dependency.peerContextChanged,
+        }
+      : {}),
     ...(dependency.before === undefined
       ? {}
       : {
@@ -115,6 +122,12 @@ function serializePackageDiffDependency(
           ...(dependency.before.specifier === undefined
             ? {}
             : { beforeSpecifier: dependency.before.specifier }),
+          ...(dependency.before.resolvedVersion === undefined
+            ? {}
+            : { beforeResolvedVersion: dependency.before.resolvedVersion }),
+          ...(dependency.before.peerContext === undefined
+            ? {}
+            : { beforePeerContext: dependency.before.peerContext }),
         }),
     ...(dependency.after === undefined
       ? {}
@@ -123,6 +136,12 @@ function serializePackageDiffDependency(
           ...(dependency.after.specifier === undefined
             ? {}
             : { afterSpecifier: dependency.after.specifier }),
+          ...(dependency.after.resolvedVersion === undefined
+            ? {}
+            : { afterResolvedVersion: dependency.after.resolvedVersion }),
+          ...(dependency.after.peerContext === undefined
+            ? {}
+            : { afterPeerContext: dependency.after.peerContext }),
         }),
     ...(dependency.before === undefined ? {} : { before: dependency.before }),
     ...(dependency.after === undefined ? {} : { after: dependency.after }),

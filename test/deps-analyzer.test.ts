@@ -348,6 +348,174 @@ describe('analyzePackageDependencies', () => {
     })
   })
 
+  it('prefers pnpm lockfile resolutions for lockfile-only dependency diffs', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-lockfile-package',
+              dependencies: {
+                react: '^19.0.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'pnpm-lock.yaml': [
+            "lockfileVersion: '9.0'",
+            '',
+            'importers:',
+            '  .:',
+            '    dependencies:',
+            '      react:',
+            '        specifier: ^19.0.0',
+            '        version: 19.1.0(next@15.0.0)(react-dom@18.2.0(react@18.2.0))',
+            '',
+          ].join('\n'),
+        },
+      },
+      {
+        message: 'update lockfile only',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-lockfile-package',
+              dependencies: {
+                react: '^19.0.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'pnpm-lock.yaml': [
+            "lockfileVersion: '9.0'",
+            '',
+            'importers:',
+            '  .:',
+            '    dependencies:',
+            '      react:',
+            '        specifier: ^19.0.0',
+            '        version: 19.1.1(next@16.0.0)(react-dom@18.2.0(react@18.2.0))',
+            '',
+          ].join('\n'),
+        },
+      },
+    ])
+
+    const graph = analyzePackageDependencyDiff(repositoryRoot, 'HEAD~1')
+    const output = printPackageDependencyDiffTree(graph, {
+      color: false,
+    })
+    const jsonTree = diffGraphToSerializablePackageTree(graph)
+
+    expect(output).toBe(
+      ['~ diff-lockfile-package', '└─ ~ react@^19.0.0 (19.1.0 -> 19.1.1)'].join(
+        '\n',
+      ),
+    )
+    expect(jsonTree).toMatchObject({
+      kind: 'root',
+      label: 'diff-lockfile-package',
+      packageName: 'diff-lockfile-package',
+      path: '.',
+      change: 'changed',
+      dependencies: [
+        {
+          kind: 'external',
+          name: 'react',
+          change: 'changed',
+          specifierChanged: false,
+          resolvedVersionChanged: true,
+          peerContextChanged: true,
+          before: {
+            target: 'react@^19.0.0',
+            specifier: '^19.0.0',
+            resolvedVersion: '19.1.0',
+            peerContext: '(next@15.0.0)(react-dom@18.2.0(react@18.2.0))',
+          },
+          after: {
+            target: 'react@^19.0.0',
+            specifier: '^19.0.0',
+            resolvedVersion: '19.1.1',
+            peerContext: '(next@16.0.0)(react-dom@18.2.0(react@18.2.0))',
+          },
+          beforeResolvedVersion: '19.1.0',
+          afterResolvedVersion: '19.1.1',
+          beforePeerContext: '(next@15.0.0)(react-dom@18.2.0(react@18.2.0))',
+          afterPeerContext: '(next@16.0.0)(react-dom@18.2.0(react@18.2.0))',
+        },
+      ],
+    })
+  })
+
+  it('does not repeat identical specifiers when only peer context changes', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-peer-context-package',
+              dependencies: {
+                'next-seo': '^6.0.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'pnpm-lock.yaml': [
+            "lockfileVersion: '9.0'",
+            '',
+            'importers:',
+            '  .:',
+            '    dependencies:',
+            '      next-seo:',
+            '        specifier: ^6.0.0',
+            '        version: 6.0.0(next@15.0.0)(react@18.2.0)',
+            '',
+          ].join('\n'),
+        },
+      },
+      {
+        message: 'update peer context only',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-peer-context-package',
+              dependencies: {
+                'next-seo': '^6.0.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'pnpm-lock.yaml': [
+            "lockfileVersion: '9.0'",
+            '',
+            'importers:',
+            '  .:',
+            '    dependencies:',
+            '      next-seo:',
+            '        specifier: ^6.0.0',
+            '        version: 6.0.0(next@16.0.0)(react@18.2.0)',
+            '',
+          ].join('\n'),
+        },
+      },
+    ])
+
+    const graph = analyzePackageDependencyDiff(repositoryRoot, 'HEAD~1')
+    const output = printPackageDependencyDiffTree(graph, {
+      color: false,
+    })
+
+    expect(output).toBe(
+      ['~ diff-peer-context-package', '└─ ~ next-seo@^6.0.0'].join('\n'),
+    )
+  })
+
   it('can colorize dependency diff output', () => {
     const repositoryRoot = createGitRepository([
       {
