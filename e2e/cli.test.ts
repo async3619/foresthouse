@@ -10,7 +10,9 @@ vi.mock('../src/app/run.js', () => ({
 }))
 
 describe('main', () => {
-  const stderrWrite = vi.spyOn(process.stderr, 'write')
+  const stderrWrite = vi
+    .spyOn(process.stderr, 'write')
+    .mockImplementation(() => true)
   const consoleInfo = vi.spyOn(console, 'info').mockImplementation(() => {})
 
   beforeEach(() => {

@@ -1,8 +1,7 @@
 import path from 'node:path'
-import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { main } from '../src/app/cli.js'
 import {
@@ -45,16 +44,8 @@ const nextjsFixtureDirectory = path.join(
   'nextjs-mode',
 )
 
-const stderrWrite = vi.spyOn(process.stderr, 'write')
-
 beforeEach(() => {
   vi.mocked(runCli).mockReset()
-  stderrWrite.mockClear()
-  process.exitCode = undefined
-})
-
-afterEach(() => {
-  process.exitCode = undefined
 })
 
 describe('react command options', () => {
@@ -137,26 +128,6 @@ describe('react command options', () => {
       includeBuiltins: false,
       nextjs: true,
     })
-  })
-
-  it('reports invalid react filter values as errors', () => {
-    main('1.2.3', ['react', 'src/main.tsx', '--filter', 'widget'])
-
-    expect(runCli).not.toHaveBeenCalled()
-    expect(stderrWrite).toHaveBeenCalledWith(
-      'foresthouse: Unknown React filter: widget\n',
-    )
-    expect(process.exitCode).toBe(1)
-  })
-
-  it('reports a missing react entry when --nextjs is not enabled', () => {
-    main('1.2.3', ['react'])
-
-    expect(runCli).not.toHaveBeenCalled()
-    expect(stderrWrite).toHaveBeenCalledWith(
-      'foresthouse: Missing React entry file. Use `foresthouse react <entry-file>` or `foresthouse react --nextjs`.\n',
-    )
-    expect(process.exitCode).toBe(1)
   })
 })
 

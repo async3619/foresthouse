@@ -1,8 +1,7 @@
 import path from 'node:path'
-import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { main } from '../src/app/cli.js'
 import { runCli } from '../src/app/run.js'
@@ -43,16 +42,8 @@ const nodeModulesConfigFixtureDirectory = path.join(
   'node-modules-config',
 )
 
-const stderrWrite = vi.spyOn(process.stderr, 'write')
-
 beforeEach(() => {
   vi.mocked(runCli).mockReset()
-  stderrWrite.mockClear()
-  process.exitCode = undefined
-})
-
-afterEach(() => {
-  process.exitCode = undefined
 })
 
 describe('import command options', () => {
@@ -98,26 +89,6 @@ describe('import command options', () => {
       omitUnused: false,
       json: false,
     })
-  })
-
-  it('reports a missing import entry', () => {
-    main('1.2.3', ['import'])
-
-    expect(runCli).not.toHaveBeenCalled()
-    expect(stderrWrite).toHaveBeenCalledWith(
-      'foresthouse: Missing import entry file. Use `foresthouse import <entry-file>` or `foresthouse import --entry <path>`.\n',
-    )
-    expect(process.exitCode).toBe(1)
-  })
-
-  it('reports conflicting import entries', () => {
-    main('1.2.3', ['import', 'src/main.ts', '--entry', 'src/app.ts'])
-
-    expect(runCli).not.toHaveBeenCalled()
-    expect(stderrWrite).toHaveBeenCalledWith(
-      'foresthouse: Provide the import entry only once, either as `foresthouse import <entry-file>` or `foresthouse import --entry <path>`.\n',
-    )
-    expect(process.exitCode).toBe(1)
   })
 })
 

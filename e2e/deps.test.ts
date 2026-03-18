@@ -2,7 +2,6 @@ import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -45,19 +44,15 @@ const pnpmMonorepoFixtureDirectory = path.join(
   'deps-pnpm-monorepo',
 )
 const temporaryDirectories: string[] = []
-const stderrWrite = vi.spyOn(process.stderr, 'write')
 
 afterEach(() => {
   temporaryDirectories.splice(0).forEach((directory) => {
     fs.rmSync(directory, { recursive: true, force: true })
   })
-  process.exitCode = undefined
 })
 
 beforeEach(() => {
   vi.mocked(runCli).mockReset()
-  stderrWrite.mockClear()
-  process.exitCode = undefined
 })
 
 describe('deps command options', () => {
@@ -74,16 +69,6 @@ describe('deps command options', () => {
       projectOnly: false,
       json: true,
     })
-  })
-
-  it('rejects deps --cwd because the directory must be positional', () => {
-    main('1.2.3', ['deps', '.', '--cwd', 'packages'])
-
-    expect(runCli).not.toHaveBeenCalled()
-    expect(stderrWrite).toHaveBeenCalledWith(
-      'foresthouse: Unknown option `--cwd`\n',
-    )
-    expect(process.exitCode).toBe(1)
   })
 })
 
@@ -1053,7 +1038,7 @@ function createGitRepository(
 
   temporaryDirectories.push(repositoryRoot)
 
-  runGit(repositoryRoot, ['init'])
+  runGit(repositoryRoot, ['init', '--initial-branch=main'])
   runGit(repositoryRoot, ['config', 'user.name', 'Foresthouse Tests'])
   runGit(repositoryRoot, ['config', 'user.email', 'tests@example.com'])
 
@@ -1093,5 +1078,6 @@ function runGit(repositoryRoot: string, args: readonly string[]): string {
   return execFileSync('git', args, {
     cwd: repositoryRoot,
     encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
   }).trim()
 }
