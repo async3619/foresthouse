@@ -108,6 +108,22 @@ function serializePackageDiffDependency(
     kind: dependency.kind,
     name: dependency.name,
     change: dependency.change,
+    ...(dependency.before === undefined
+      ? {}
+      : {
+          beforeTarget: dependency.before.target,
+          ...(dependency.before.specifier === undefined
+            ? {}
+            : { beforeSpecifier: dependency.before.specifier }),
+        }),
+    ...(dependency.after === undefined
+      ? {}
+      : {
+          afterTarget: dependency.after.target,
+          ...(dependency.after.specifier === undefined
+            ? {}
+            : { afterSpecifier: dependency.after.specifier }),
+        }),
     ...(dependency.before === undefined ? {} : { before: dependency.before }),
     ...(dependency.after === undefined ? {} : { after: dependency.after }),
     ...(dependency.after === undefined
