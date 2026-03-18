@@ -2,7 +2,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { toDisplayPath } from '../../../src/utils/to-display-path.js'
+import { toDisplayPath } from './to-display-path.js'
 
 describe('toDisplayPath', () => {
   it('returns dot for the working directory itself', () => {

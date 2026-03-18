@@ -21,8 +21,10 @@
   },
   "include": [
     "src/**/*.ts",
-    "test/**/*.test.ts",
+    "e2e/**/*.test.ts",
     "tsdown.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "vitest.unit.config.ts",
+    "vitest.e2e.config.ts"
   ]
 }

@@ -2,10 +2,13 @@ import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { main } from '../src/app/cli.js'
+import { runCli } from '../src/app/run.js'
 import {
   analyzePackageDependencies,
   analyzePackageDependencyDiff,
@@ -13,32 +16,74 @@ import {
   graphToSerializablePackageTree,
   printPackageDependencyDiffTree,
   printPackageDependencyTree,
-} from '../../src/index.js'
+} from '../src/index.js'
+
+vi.mock('../src/app/run.js', () => ({
+  runCli: vi.fn(),
+}))
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 const singleFixtureDirectory = path.join(
   currentDirectory,
   '..',
+  'test',
   'fixtures',
   'deps-single',
 )
 const monorepoFixtureDirectory = path.join(
   currentDirectory,
   '..',
+  'test',
   'fixtures',
   'deps-monorepo',
 )
 const pnpmMonorepoFixtureDirectory = path.join(
   currentDirectory,
   '..',
+  'test',
   'fixtures',
   'deps-pnpm-monorepo',
 )
 const temporaryDirectories: string[] = []
+const stderrWrite = vi.spyOn(process.stderr, 'write')
 
 afterEach(() => {
   temporaryDirectories.splice(0).forEach((directory) => {
     fs.rmSync(directory, { recursive: true, force: true })
+  })
+  process.exitCode = undefined
+})
+
+beforeEach(() => {
+  vi.mocked(runCli).mockReset()
+  stderrWrite.mockClear()
+  process.exitCode = undefined
+})
+
+describe('deps command options', () => {
+  it('passes parsed deps options to the CLI runner', () => {
+    main('1.2.3', ['deps', './packages/app', '--diff', 'HEAD~1', '--json'])
+
+    expect(runCli).toHaveBeenCalledWith({
+      command: 'deps',
+      directory: './packages/app',
+      diff: 'HEAD~1',
+      cwd: undefined,
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      json: true,
+    })
+  })
+
+  it('rejects deps --cwd because the directory must be positional', () => {
+    main('1.2.3', ['deps', '.', '--cwd', 'packages'])
+
+    expect(runCli).not.toHaveBeenCalled()
+    expect(stderrWrite).toHaveBeenCalledWith(
+      'foresthouse: Unknown option `--cwd`\n',
+    )
+    expect(process.exitCode).toBe(1)
   })
 })
 

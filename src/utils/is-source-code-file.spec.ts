@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  isSourceCodeFile,
-  SOURCE_EXTENSIONS,
-} from '../../../src/utils/is-source-code-file.js'
+import { isSourceCodeFile, SOURCE_EXTENSIONS } from './is-source-code-file.js'
 
 describe('isSourceCodeFile', () => {
   it('accepts the supported source extensions', () => {

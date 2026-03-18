@@ -2,7 +2,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { normalizeFilePath } from '../../../src/utils/normalize-file-path.js'
+import { normalizeFilePath } from './normalize-file-path.js'
 
 describe('normalizeFilePath', () => {
   it('delegates to node path normalization', () => {

@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   discoverNextJsPageEntries,
   resolveReactEntryFiles,
-} from '../../../src/app/react-entry-files.js'
+} from './react-entry-files.js'
 
 const temporaryDirectories: string[] = []
 

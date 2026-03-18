@@ -94,6 +94,9 @@ pnpm run test:e2e
 pnpm run check
 ```
 
+- Unit tests live next to source files as `src/**/*.spec.ts`.
+- End-to-end command tests live under `e2e/`.
+
 ## Collaboration And Release Flow
 
 - `dev` is the pre-release branch and publishes `-dev.N` builds through `semantic-release`
