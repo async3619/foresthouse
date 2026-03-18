@@ -529,6 +529,8 @@ describe('analyzePackageDependencies', () => {
           kind: 'workspace',
           name: '@repo/config',
           change: 'added',
+          afterTarget: 'packages/config',
+          afterSpecifier: 'workspace:*',
           after: {
             target: 'packages/config',
             specifier: 'workspace:*',
@@ -543,6 +545,8 @@ describe('analyzePackageDependencies', () => {
           kind: 'workspace',
           name: '@repo/ui',
           change: 'removed',
+          beforeTarget: 'packages/ui',
+          beforeSpecifier: 'workspace:*',
           before: {
             target: 'packages/ui',
             specifier: 'workspace:*',
@@ -557,6 +561,10 @@ describe('analyzePackageDependencies', () => {
           kind: 'external',
           name: 'react',
           change: 'changed',
+          beforeTarget: 'react@^19.1.0',
+          beforeSpecifier: '^19.1.0',
+          afterTarget: 'react@^19.2.0',
+          afterSpecifier: '^19.2.0',
           before: {
             target: 'react@^19.1.0',
             specifier: '^19.1.0',
@@ -564,6 +572,120 @@ describe('analyzePackageDependencies', () => {
           after: {
             target: 'react@^19.2.0',
             specifier: '^19.2.0',
+          },
+        },
+      ],
+    })
+  })
+
+  it('shows workspace specifier changes clearly in ASCII and JSON diff output', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/ui': 'workspace:^1.0.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+            },
+            null,
+            2,
+          ),
+        },
+      },
+      {
+        message: 'update workspace dependency specifier',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'diff-monorepo-root',
+              private: true,
+              workspaces: ['apps/*', 'packages/*'],
+            },
+            null,
+            2,
+          ),
+          'apps/web/package.json': JSON.stringify(
+            {
+              name: '@repo/web',
+              dependencies: {
+                '@repo/ui': 'workspace:^2.0.0',
+              },
+            },
+            null,
+            2,
+          ),
+          'packages/ui/package.json': JSON.stringify(
+            {
+              name: '@repo/ui',
+            },
+            null,
+            2,
+          ),
+        },
+      },
+    ])
+
+    const graph = analyzePackageDependencyDiff(
+      path.join(repositoryRoot, 'apps', 'web'),
+      'HEAD~1',
+    )
+    const output = printPackageDependencyDiffTree(graph, {
+      color: false,
+    })
+    const jsonTree = diffGraphToSerializablePackageTree(graph)
+
+    expect(output).toBe(
+      [
+        '~ @repo/web',
+        '└─ ~ packages/ui (workspace:^1.0.0 -> workspace:^2.0.0)',
+      ].join('\n'),
+    )
+    expect(jsonTree).toMatchObject({
+      kind: 'root',
+      label: '@repo/web',
+      packageName: '@repo/web',
+      path: 'apps/web',
+      change: 'changed',
+      dependencies: [
+        {
+          kind: 'workspace',
+          name: '@repo/ui',
+          change: 'changed',
+          beforeTarget: 'packages/ui',
+          beforeSpecifier: 'workspace:^1.0.0',
+          afterTarget: 'packages/ui',
+          afterSpecifier: 'workspace:^2.0.0',
+          before: {
+            target: 'packages/ui',
+            specifier: 'workspace:^1.0.0',
+          },
+          after: {
+            target: 'packages/ui',
+            specifier: 'workspace:^2.0.0',
+          },
+          node: {
+            kind: 'workspace',
+            path: 'packages/ui',
+            change: 'unchanged',
           },
         },
       ],
