@@ -221,6 +221,9 @@ function formatDiffDependencyLabel(
 function formatExternalDiffLabel(
   dependency: Extract<PackageDependencyDiffDependency, { kind: 'external' }>,
 ): string {
+  const beforeResolution = dependency.before?.resolvedVersion
+  const afterResolution = dependency.after?.resolvedVersion
+
   if (dependency.change !== 'changed') {
     return (
       dependency.after?.target ?? dependency.before?.target ?? dependency.name
@@ -229,6 +232,21 @@ function formatExternalDiffLabel(
 
   const previousSpecifier = dependency.before?.specifier ?? 'none'
   const nextSpecifier = dependency.after?.specifier ?? 'none'
+
+  if (dependency.resolvedVersionChanged) {
+    const resolutionLabel = formatVersionChange(
+      beforeResolution,
+      afterResolution,
+    )
+
+    return previousSpecifier === nextSpecifier
+      ? `${dependency.name}@${nextSpecifier} (${resolutionLabel})`
+      : `${dependency.name}@${previousSpecifier} -> ${nextSpecifier} (${resolutionLabel})`
+  }
+
+  if (previousSpecifier === nextSpecifier) {
+    return `${dependency.name}@${nextSpecifier}`
+  }
 
   return `${dependency.name}@${previousSpecifier} -> ${nextSpecifier}`
 }
@@ -287,6 +305,13 @@ function formatWorkspaceState(
   }
 
   return `${target} (${state.specifier})`
+}
+
+function formatVersionChange(
+  beforeResolvedVersion: string | undefined,
+  afterResolvedVersion: string | undefined,
+): string {
+  return `${beforeResolvedVersion ?? 'none'} -> ${afterResolvedVersion ?? 'none'}`
 }
 
 function toMarker(change: PackageDependencyChangeKind): '+' | '-' | '~' {
