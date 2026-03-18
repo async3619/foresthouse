@@ -13,21 +13,24 @@ import {
   graphToSerializablePackageTree,
   printPackageDependencyDiffTree,
   printPackageDependencyTree,
-} from '../src/index.js'
+} from '../../src/index.js'
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 const singleFixtureDirectory = path.join(
   currentDirectory,
+  '..',
   'fixtures',
   'deps-single',
 )
 const monorepoFixtureDirectory = path.join(
   currentDirectory,
+  '..',
   'fixtures',
   'deps-monorepo',
 )
 const pnpmMonorepoFixtureDirectory = path.join(
   currentDirectory,
+  '..',
   'fixtures',
   'deps-pnpm-monorepo',
 )

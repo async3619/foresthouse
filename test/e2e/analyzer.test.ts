@@ -7,14 +7,15 @@ import {
   analyzeDependencies,
   graphToSerializableTree,
   printDependencyTree,
-} from '../src/index.js'
-import type { DependencyEdge } from '../src/types/dependency-edge.js'
-import type { DependencyGraph } from '../src/types/dependency-graph.js'
+} from '../../src/index.js'
+import type { DependencyEdge } from '../../src/types/dependency-edge.js'
+import type { DependencyGraph } from '../../src/types/dependency-graph.js'
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
-const fixtureDirectory = path.join(currentDirectory, 'fixtures', 'basic')
+const fixtureDirectory = path.join(currentDirectory, '..', 'fixtures', 'basic')
 const monorepoFixtureDirectory = path.join(
   currentDirectory,
+  '..',
   'fixtures',
   'monorepo',
   'packages',
@@ -22,6 +23,7 @@ const monorepoFixtureDirectory = path.join(
 )
 const nodeModulesConfigFixtureDirectory = path.join(
   currentDirectory,
+  '..',
   'fixtures',
   'node-modules-config',
 )

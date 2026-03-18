@@ -6,21 +6,23 @@ import { describe, expect, it } from 'vitest'
 import {
   discoverNextJsPageEntries,
   resolveReactEntryFiles,
-} from '../src/app/react-entry-files.js'
+} from '../../src/app/react-entry-files.js'
 import {
   analyzeReactUsage,
   graphToSerializableReactTree,
   printReactUsageTree,
-} from '../src/index.js'
+} from '../../src/index.js'
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 const nextjsFixtureDirectory = path.join(
   currentDirectory,
+  '..',
   'fixtures',
   'nextjs-mode',
 )
 const reactFixtureDirectory = path.join(
   currentDirectory,
+  '..',
   'fixtures',
   'react-mode',
 )

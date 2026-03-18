@@ -2,10 +2,10 @@ import process from 'node:process'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { main } from '../src/app/cli.js'
-import { runCli } from '../src/app/run.js'
+import { main } from '../../../src/app/cli.js'
+import { runCli } from '../../../src/app/run.js'
 
-vi.mock('../src/app/run.js', () => ({
+vi.mock('../../../src/app/run.js', () => ({
   runCli: vi.fn(),
 }))
 

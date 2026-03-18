@@ -89,6 +89,8 @@ src/main.ts
 ```bash
 corepack enable
 pnpm install
+pnpm run test:unit
+pnpm run test:e2e
 pnpm run check
 ```
 

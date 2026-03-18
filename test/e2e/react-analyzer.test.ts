@@ -7,12 +7,18 @@ import {
   analyzeReactUsage,
   graphToSerializableReactTree,
   printReactUsageTree,
-} from '../src/index.js'
+} from '../../src/index.js'
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
-const fixtureDirectory = path.join(currentDirectory, 'fixtures', 'react-mode')
+const fixtureDirectory = path.join(
+  currentDirectory,
+  '..',
+  'fixtures',
+  'react-mode',
+)
 const monorepoFixtureDirectory = path.join(
   currentDirectory,
+  '..',
   'fixtures',
   'monorepo',
   'packages',
