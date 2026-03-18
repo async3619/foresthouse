@@ -8,6 +8,8 @@ import {
   graphToSerializableTree,
   printDependencyTree,
 } from '../src/index.js'
+import type { DependencyEdge } from '../src/types/dependency-edge.js'
+import type { DependencyGraph } from '../src/types/dependency-graph.js'
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 const fixtureDirectory = path.join(currentDirectory, 'fixtures', 'basic')
@@ -134,6 +136,74 @@ describe('analyzeDependencies', () => {
     expect(output).toContain(
       'src/unused-helper.ts \u001B[38;5;214m(unused)\u001B[0m',
     )
+  })
+
+  it('renders shared source subgraphs only once in ascii output', () => {
+    const graph = createSharedSubgraphFixture()
+
+    const output = printDependencyTree(graph, {
+      color: false,
+    })
+
+    expect(output).toContain('src/shared.ts')
+    expect(output).toContain('src/shared.ts (shared)')
+    expect(output).toContain('src/shared-leaf.ts')
+    expect(output.match(/src\/shared-leaf\.ts/g)).toHaveLength(1)
+  })
+
+  it('serializes repeated source subgraphs as shared references in json output', () => {
+    const graph = createSharedSubgraphFixture()
+
+    const jsonTree = graphToSerializableTree(graph)
+
+    expect(jsonTree).toMatchObject({
+      kind: 'entry',
+      path: 'src/entry.ts',
+      dependencies: [
+        {
+          target: 'src/left.ts',
+          node: {
+            kind: 'source',
+            path: 'src/left.ts',
+            dependencies: [
+              {
+                target: 'src/shared.ts',
+                node: {
+                  kind: 'source',
+                  path: 'src/shared.ts',
+                  dependencies: [
+                    {
+                      target: 'src/shared-leaf.ts',
+                      node: {
+                        kind: 'source',
+                        path: 'src/shared-leaf.ts',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        {
+          target: 'src/right.ts',
+          node: {
+            kind: 'source',
+            path: 'src/right.ts',
+            dependencies: [
+              {
+                target: 'src/shared.ts',
+                node: {
+                  kind: 'shared',
+                  path: 'src/shared.ts',
+                  dependencies: [],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    })
   })
 
   it('expands sibling workspace packages and their own tsconfig aliases by default', () => {
@@ -269,6 +339,71 @@ describe('analyzeDependencies', () => {
     expect(output).toContain('broken-package [external]')
   })
 })
+
+function createSharedSubgraphFixture(): DependencyGraph {
+  const cwd = '/repo'
+  const entryId = path.join(cwd, 'src', 'entry.ts')
+  const leftId = path.join(cwd, 'src', 'left.ts')
+  const rightId = path.join(cwd, 'src', 'right.ts')
+  const sharedId = path.join(cwd, 'src', 'shared.ts')
+  const leafId = path.join(cwd, 'src', 'shared-leaf.ts')
+
+  return {
+    cwd,
+    entryId,
+    nodes: new Map([
+      [
+        entryId,
+        {
+          id: entryId,
+          dependencies: [
+            createSourceEdge('./left', leftId),
+            createSourceEdge('./right', rightId),
+          ],
+        },
+      ],
+      [
+        leftId,
+        {
+          id: leftId,
+          dependencies: [createSourceEdge('./shared', sharedId)],
+        },
+      ],
+      [
+        rightId,
+        {
+          id: rightId,
+          dependencies: [createSourceEdge('./shared', sharedId)],
+        },
+      ],
+      [
+        sharedId,
+        {
+          id: sharedId,
+          dependencies: [createSourceEdge('./shared-leaf', leafId)],
+        },
+      ],
+      [
+        leafId,
+        {
+          id: leafId,
+          dependencies: [],
+        },
+      ],
+    ]),
+  }
+}
+
+function createSourceEdge(specifier: string, target: string): DependencyEdge {
+  return {
+    specifier,
+    referenceKind: 'import',
+    isTypeOnly: false,
+    unused: false,
+    kind: 'source',
+    target,
+  }
+}
 
 function findDependencyByPath(
   tree: object,
