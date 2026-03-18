@@ -80,6 +80,13 @@ export function analyzePackageDependencyDiff(
     throw new Error(`No package.json found from ${resolvedInputPath}`)
   }
 
+  const changedPackagePaths = collectChangedPackagePaths(
+    repositoryRoot,
+    comparison,
+    beforeGraph,
+    afterGraph,
+  )
+
   return {
     repositoryRoot,
     root: diffPackageNode(
@@ -90,6 +97,7 @@ export function analyzePackageDependencyDiff(
       },
       beforeGraph,
       afterGraph,
+      changedPackagePaths,
       new Set(),
     ),
   }
@@ -410,6 +418,7 @@ function diffPackageNode(
   },
   beforeGraph: ComparablePackageDependencyGraph | undefined,
   afterGraph: ComparablePackageDependencyGraph | undefined,
+  changedPackagePaths: ReadonlySet<string>,
   ancestry: ReadonlySet<string>,
 ): PackageDependencyDiffNode {
   const nodeKey = `${location.beforePath ?? ''}->${location.afterPath ?? ''}`
@@ -453,6 +462,7 @@ function diffPackageNode(
     afterNode,
     beforeGraph,
     afterGraph,
+    changedPackagePaths,
     nextAncestry,
   )
   const change = resolveNodeChange(
@@ -460,6 +470,7 @@ function diffPackageNode(
     beforeNode,
     afterNode,
     dependencies,
+    changedPackagePaths,
   )
 
   return {
@@ -485,6 +496,7 @@ function collectDependencyDiffs(
   afterNode: ComparablePackageDependencyNode | undefined,
   beforeGraph: ComparablePackageDependencyGraph | undefined,
   afterGraph: ComparablePackageDependencyGraph | undefined,
+  changedPackagePaths: ReadonlySet<string>,
   ancestry: ReadonlySet<string>,
 ): PackageDependencyDiffDependency[] {
   const dependencyKeys = new Set<string>([
@@ -507,6 +519,7 @@ function collectDependencyDiffs(
         afterNode?.dependenciesByKey.get(dependencyKey),
         beforeGraph,
         afterGraph,
+        changedPackagePaths,
         ancestry,
       )
 
@@ -539,6 +552,7 @@ function diffDependency(
   afterDependency: ComparablePackageDependency | undefined,
   beforeGraph: ComparablePackageDependencyGraph | undefined,
   afterGraph: ComparablePackageDependencyGraph | undefined,
+  changedPackagePaths: ReadonlySet<string>,
   ancestry: ReadonlySet<string>,
 ): PackageDependencyDiffDependency | undefined {
   const change = resolveDependencyChange(beforeDependency, afterDependency)
@@ -572,6 +586,7 @@ function diffDependency(
       },
       beforeGraph,
       afterGraph,
+      changedPackagePaths,
       ancestry,
     )
 
@@ -690,6 +705,7 @@ function resolveNodeChange(
   beforeNode: ComparablePackageDependencyNode | undefined,
   afterNode: ComparablePackageDependencyNode | undefined,
   dependencies: readonly PackageDependencyDiffDependency[],
+  changedPackagePaths: ReadonlySet<string>,
 ): PackageDependencyChangeKind {
   if (beforeNode === undefined && afterNode !== undefined) {
     return 'added'
@@ -711,9 +727,86 @@ function resolveNodeChange(
     return 'changed'
   }
 
-  return dependencies.some((dependency) => dependency.change !== 'unchanged')
-    ? 'changed'
-    : 'unchanged'
+  const packagePath = location.afterPath ?? location.beforePath
+
+  if (packagePath !== undefined && changedPackagePaths.has(packagePath)) {
+    return 'changed'
+  }
+
+  return dependencies.length > 0 ? 'changed' : 'unchanged'
+}
+
+function collectChangedPackagePaths(
+  repositoryRoot: string,
+  comparison: GitDiffComparison,
+  beforeGraph: ComparablePackageDependencyGraph | undefined,
+  afterGraph: ComparablePackageDependencyGraph | undefined,
+): ReadonlySet<string> {
+  const changedFiles = listChangedRepositoryPaths(repositoryRoot, comparison)
+  const packagePaths = Array.from(
+    new Set([
+      ...Array.from(beforeGraph?.nodes.keys() ?? []),
+      ...Array.from(afterGraph?.nodes.keys() ?? []),
+    ]),
+  ).sort((left, right) => right.length - left.length)
+  const changedPackagePaths = new Set<string>()
+
+  changedFiles.forEach((filePath) => {
+    const ownerPackagePath = packagePaths.find((packagePath) =>
+      isFileInPackage(filePath, packagePath),
+    )
+
+    if (ownerPackagePath !== undefined) {
+      changedPackagePaths.add(ownerPackagePath)
+    }
+  })
+
+  return changedPackagePaths
+}
+
+function listChangedRepositoryPaths(
+  repositoryRoot: string,
+  comparison: GitDiffComparison,
+): readonly string[] {
+  const trackedChanges =
+    comparison.afterTree === undefined
+      ? runGit(repositoryRoot, [
+          'diff',
+          '--name-only',
+          '-z',
+          comparison.beforeTree,
+          '--',
+        ])
+      : runGit(repositoryRoot, [
+          'diff',
+          '--name-only',
+          '-z',
+          comparison.beforeTree,
+          comparison.afterTree,
+        ])
+
+  const changedPaths = new Set(
+    trackedChanges.split('\u0000').filter((filePath) => filePath.length > 0),
+  )
+
+  if (comparison.afterTree === undefined) {
+    runGit(repositoryRoot, ['ls-files', '--others', '--exclude-standard', '-z'])
+      .split('\u0000')
+      .filter((filePath) => filePath.length > 0)
+      .forEach((filePath) => {
+        changedPaths.add(filePath)
+      })
+  }
+
+  return Array.from(changedPaths)
+}
+
+function isFileInPackage(filePath: string, packagePath: string): boolean {
+  if (packagePath === '.') {
+    return true
+  }
+
+  return filePath === packagePath || filePath.startsWith(`${packagePath}/`)
 }
 
 function runGit(
