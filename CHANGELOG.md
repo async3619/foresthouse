@@ -1,3 +1,9 @@
+## [1.0.1-dev.1](https://github.com/async3619/foresthouse/compare/v1.0.0...v1.0.1-dev.1) (2026-03-19)
+
+### Performance
+
+* share dependency graph across react entries ([#76](https://github.com/async3619/foresthouse/issues/76)) ([7423aba](https://github.com/async3619/foresthouse/commit/7423abae15560dd0f4ae0d8d0d49bebeaac39a5b))
+
 ## 1.0.0 (2026-03-18)
 
 ### Features
