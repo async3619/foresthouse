@@ -10,16 +10,20 @@ import { collectModuleReferences } from './references.js'
 import { resolveDependency } from './resolver.js'
 
 export function buildDependencyGraph(
-  entryPath: string,
+  entryConfigs: readonly EntryConfig[],
   options: BuildDependencyGraphOptions,
 ): Map<string, SourceModuleNode> {
-  return new DependencyGraphBuilder(entryPath, options).build()
+  return new DependencyGraphBuilder(entryConfigs, options).build()
+}
+
+export interface EntryConfig {
+  readonly entryPath: string
+  readonly compilerOptions: ts.CompilerOptions
+  readonly configPath?: string
 }
 
 export interface BuildDependencyGraphOptions {
   readonly cwd: string
-  readonly entryConfigPath?: string
-  readonly entryCompilerOptions: ts.CompilerOptions
   readonly expandWorkspaces: boolean
   readonly projectOnly: boolean
 }
@@ -35,25 +39,27 @@ class DependencyGraphBuilder {
   private readonly resolverCache = new Map<string, ResolverFactory>()
 
   constructor(
-    private readonly entryPath: string,
+    private readonly entryConfigs: readonly EntryConfig[],
     private readonly options: BuildDependencyGraphOptions,
   ) {
-    const entryConfig: import('./resolver.js').ResolverConfigContext = {
-      compilerOptions: options.entryCompilerOptions,
-      ...(options.entryConfigPath === undefined
-        ? {}
-        : { path: options.entryConfigPath }),
-    }
-
-    this.configCache.set(path.dirname(this.entryPath), entryConfig)
+    entryConfigs.forEach((entryConfig) => {
+      this.configCache.set(path.dirname(entryConfig.entryPath), {
+        compilerOptions: entryConfig.compilerOptions,
+        ...(entryConfig.configPath === undefined
+          ? {}
+          : { path: entryConfig.configPath }),
+      })
+    })
   }
 
   build(): Map<string, SourceModuleNode> {
-    this.visitFile(this.entryPath)
+    this.entryConfigs.forEach((entryConfig) => {
+      this.visitFile(entryConfig.entryPath, entryConfig.configPath)
+    })
     return this.nodes
   }
 
-  private visitFile(filePath: string): void {
+  private visitFile(filePath: string, entryConfigPath?: string): void {
     const normalizedPath = normalizeFilePath(filePath)
     if (this.nodes.has(normalizedPath)) {
       return
@@ -73,9 +79,7 @@ class DependencyGraphBuilder {
         projectOnly: this.options.projectOnly,
         getConfigForFile: (targetPath) => this.getConfigForFile(targetPath),
         getResolverForFile: (targetPath) => this.getResolverForFile(targetPath),
-        ...(this.options.entryConfigPath === undefined
-          ? {}
-          : { entryConfigPath: this.options.entryConfigPath }),
+        ...(entryConfigPath === undefined ? {} : { entryConfigPath }),
       }),
     )
 
@@ -86,7 +90,7 @@ class DependencyGraphBuilder {
 
     for (const dependency of dependencies) {
       if (dependency.kind === 'source') {
-        this.visitFile(dependency.target)
+        this.visitFile(dependency.target, entryConfigPath)
       }
     }
   }
