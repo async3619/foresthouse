@@ -1,8 +1,8 @@
 import path from 'node:path'
 
+import type ts from 'typescript'
 import type { AnalyzeOptions } from '../../types/analyze-options.js'
 import type { DependencyGraph } from '../../types/dependency-graph.js'
-import type ts from 'typescript'
 
 import { loadCompilerOptions } from '../../typescript/config.js'
 import { BaseAnalyzer } from '../base.js'
@@ -58,7 +58,9 @@ class MultiEntryImportAnalyzer extends BaseAnalyzer<MultiEntryDependencyGraph> {
       expandWorkspaces: this.options.expandWorkspaces ?? true,
       projectOnly: this.options.projectOnly ?? false,
     })
-    const uniqueConfigPaths = [...new Set(entryConfigs.map((entry) => entry.configPath))]
+    const uniqueConfigPaths = [
+      ...new Set(entryConfigs.map((entry) => entry.configPath)),
+    ]
     const configPath =
       uniqueConfigPaths.length === 1 ? uniqueConfigPaths[0] : undefined
     const [firstEntryPath] = this.entryPaths
