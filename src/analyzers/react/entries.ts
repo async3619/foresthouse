@@ -18,6 +18,8 @@ export interface PendingReactUsageEntry {
   readonly location: ReactUsageLocation
 }
 
+const lineStartOffsetsCache = new Map<string, readonly number[]>()
+
 export function collectEntryUsages(
   program: Program,
   filePath: string,
@@ -204,20 +206,15 @@ function offsetToLineAndColumn(
   sourceText: string,
   offset: number,
 ): Pick<ReactUsageLocation, 'line' | 'column'> {
-  let line = 1
-  let column = 1
+  const lineStartOffsets = getLineStartOffsets(sourceText)
+  const boundedOffset = Math.max(0, Math.min(offset, sourceText.length))
+  const lineIndex = findLineIndex(lineStartOffsets, boundedOffset)
+  const lineStartOffset = lineStartOffsets[lineIndex] ?? 0
 
-  for (let index = 0; index < offset && index < sourceText.length; index += 1) {
-    if (sourceText[index] === '\n') {
-      line += 1
-      column = 1
-      continue
-    }
-
-    column += 1
+  return {
+    line: lineIndex + 1,
+    column: boundedOffset - lineStartOffset + 1,
   }
-
-  return { line, column }
 }
 
 function comparePendingReactUsageEntries(
@@ -231,4 +228,52 @@ function comparePendingReactUsageEntries(
     left.kind.localeCompare(right.kind) ||
     left.referenceName.localeCompare(right.referenceName)
   )
+}
+
+function getLineStartOffsets(sourceText: string): readonly number[] {
+  const cached = lineStartOffsetsCache.get(sourceText)
+  if (cached !== undefined) {
+    return cached
+  }
+
+  const lineStartOffsets = [0]
+  for (let index = 0; index < sourceText.length; index += 1) {
+    if (sourceText[index] === '\n') {
+      lineStartOffsets.push(index + 1)
+    }
+  }
+
+  lineStartOffsetsCache.set(sourceText, lineStartOffsets)
+  return lineStartOffsets
+}
+
+function findLineIndex(
+  lineStartOffsets: readonly number[],
+  offset: number,
+): number {
+  let lowerBound = 0
+  let upperBound = lineStartOffsets.length - 1
+
+  while (lowerBound <= upperBound) {
+    const middleIndex = Math.floor((lowerBound + upperBound) / 2)
+    const middleOffset = lineStartOffsets[middleIndex]
+    const nextOffset = lineStartOffsets[middleIndex + 1]
+
+    if (middleOffset === undefined) {
+      return 0
+    }
+
+    if (offset < middleOffset) {
+      upperBound = middleIndex - 1
+      continue
+    }
+
+    if (nextOffset === undefined || offset < nextOffset) {
+      return middleIndex
+    }
+
+    lowerBound = middleIndex + 1
+  }
+
+  return Math.max(0, lineStartOffsets.length - 1)
 }
