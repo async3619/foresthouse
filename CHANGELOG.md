@@ -1,3 +1,9 @@
+## [1.0.1-dev.2](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.1...v1.0.1-dev.2) (2026-03-19)
+
+### Performance
+
+* cache line offsets for react usage locations ([#77](https://github.com/async3619/foresthouse/issues/77)) ([91bd312](https://github.com/async3619/foresthouse/commit/91bd3126fa4cda1b76ad3110a51d669cc54ea86f))
+
 ## [1.0.1-dev.1](https://github.com/async3619/foresthouse/compare/v1.0.0...v1.0.1-dev.1) (2026-03-19)
 
 ### Performance
