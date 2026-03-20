@@ -1,3 +1,9 @@
+## [1.1.0-dev.2](https://github.com/async3619/foresthouse/compare/v1.1.0-dev.1...v1.1.0-dev.2) (2026-03-20)
+
+### Performance
+
+* default import output to omit unused dependencies ([#94](https://github.com/async3619/foresthouse/issues/94)) ([2c03e59](https://github.com/async3619/foresthouse/commit/2c03e5975debe112d882379177405a9c29f82084))
+
 ## [1.1.0-dev.1](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.7...v1.1.0-dev.1) (2026-03-20)
 
 ### Features
