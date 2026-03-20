@@ -1,3 +1,9 @@
+## [1.0.1-dev.3](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.2...v1.0.1-dev.3) (2026-03-20)
+
+### Performance
+
+* cache module resolution results during graph traversal ([#82](https://github.com/async3619/foresthouse/issues/82)) ([5b38018](https://github.com/async3619/foresthouse/commit/5b38018206ec8896ff93a242f034cab174ad6f61))
+
 ## [1.0.1-dev.2](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.1...v1.0.1-dev.2) (2026-03-19)
 
 ### Performance
