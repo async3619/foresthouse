@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/foresthouse.svg?style=flat&colorA=000000&colorB=000000)](https://www.npmjs.com/package/foresthouse)
 [![codecov](https://img.shields.io/codecov/c/github/async3619/foresthouse?style=flat&colorA=000000&colorB=000000)](https://codecov.io/gh/async3619/foresthouse)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json&style=flat&colorA=000000&colorB=000000)](https://codspeed.io/async3619/foresthouse?utm_source=badge)
 [![license](https://img.shields.io/npm/l/foresthouse?style=flat&colorA=000000&colorB=000000)](https://www.npmjs.com/package/foresthouse)
 
 `foresthouse` is a modern TypeScript-first Node.js CLI that can print source import trees, React usage trees, and package-manifest dependency trees.
@@ -92,7 +93,7 @@ Options:
   --include-externals  Include packages and Node built-ins in the tree.
   --no-workspaces      Do not expand sibling workspace packages into source subtrees. (default: true)
   --project-only       Restrict traversal to the active tsconfig.json or jsconfig.json project.
-  --no-unused          Omit imports that are never referenced. (default: true)
+  --unused             Include imports that are never referenced.
   --json               Print the dependency tree as JSON.
   -h, --help           Display this message
 ```

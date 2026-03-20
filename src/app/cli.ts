@@ -81,7 +81,7 @@ class CliMain {
         '--project-only',
         'Restrict traversal to the active tsconfig.json or jsconfig.json project.',
       )
-      .option('--no-unused', 'Omit imports that are never referenced.')
+      .option('--unused', 'Include imports that are never referenced.')
       .option('--json', 'Print the dependency tree as JSON.')
       .action(
         (entryFile: string | undefined, rawOptions: ParsedImportCliOptions) => {
@@ -215,7 +215,7 @@ function normalizeImportCliOptions(
     expandWorkspaces: options.workspaces !== false,
     projectOnly: options.projectOnly === true,
     includeExternals: options.includeExternals === true,
-    omitUnused: options.unused === false,
+    omitUnused: options.unused !== true,
     json: options.json === true,
   }
 }

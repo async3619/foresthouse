@@ -4,4 +4,5 @@ export interface AnalyzeOptions {
   readonly expandWorkspaces?: boolean
   readonly projectOnly?: boolean
   readonly includeBuiltins?: boolean
+  readonly trackUnusedImports?: boolean
 }

@@ -3,15 +3,16 @@ import fs from 'node:fs'
 import { parseSync } from 'oxc-parser'
 
 import type { AnalyzeOptions } from '../../types/analyze-options.js'
-import type { DependencyGraph } from '../../types/dependency-graph.js'
 import type { ReactUsageEdge } from '../../types/react-usage-edge.js'
 import type { ReactUsageEntry } from '../../types/react-usage-entry.js'
 import type { ReactUsageGraph } from '../../types/react-usage-graph.js'
 import type { ReactUsageNode } from '../../types/react-usage-node.js'
-import type { SourceModuleNode } from '../../types/source-module-node.js'
 import { isSourceCodeFile } from '../../utils/is-source-code-file.js'
 import { BaseAnalyzer } from '../base.js'
-import { analyzeDependencies } from '../import/index.js'
+import {
+  analyzeDependenciesForEntries,
+  type MultiEntryDependencyGraph,
+} from '../import/index.js'
 import { analyzeReactFile } from './file.js'
 import {
   addBuiltinNodes,
@@ -43,11 +44,10 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
   }
 
   protected doAnalyze(): ReactUsageGraph {
-    const dependencyGraphs = this.entryFiles.map((entryFile) =>
-      analyzeDependencies(entryFile, this.options),
-    )
-    const dependencyGraph = mergeDependencyGraphs(dependencyGraphs)
-    const entryIds = dependencyGraphs.map((graph) => graph.entryId)
+    const dependencyGraph = analyzeDependenciesForEntries(this.entryFiles, {
+      ...this.options,
+      trackUnusedImports: false,
+    })
     const fileAnalyses = this.collectFileAnalyses(dependencyGraph)
     const nodes = this.createNodes(fileAnalyses)
     this.attachUsages(fileAnalyses, nodes)
@@ -56,14 +56,14 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
     return {
       cwd: dependencyGraph.cwd,
       entryId: dependencyGraph.entryId,
-      entryIds,
+      entryIds: dependencyGraph.entryIds,
       nodes,
       entries,
     }
   }
 
   private collectFileAnalyses(
-    dependencyGraph: MergedDependencyGraph,
+    dependencyGraph: MultiEntryDependencyGraph,
   ): Map<string, import('./file.js').FileAnalysis> {
     const reachableFiles = new Set<string>([
       ...dependencyGraph.entryIds,
@@ -241,40 +241,4 @@ function normalizeEntryFiles(entryFile: string | readonly string[]): string[] {
   }
 
   return dedupedEntryFiles
-}
-
-function mergeDependencyGraphs(
-  graphs: readonly DependencyGraph[],
-): MergedDependencyGraph {
-  const firstGraph = graphs[0]
-  if (firstGraph === undefined) {
-    throw new Error('At least one dependency graph is required.')
-  }
-
-  const nodes = new Map<string, SourceModuleNode>()
-  for (const graph of graphs) {
-    for (const [nodeId, node] of graph.nodes) {
-      if (!nodes.has(nodeId)) {
-        nodes.set(nodeId, node)
-      }
-    }
-  }
-
-  const uniqueConfigPaths = [
-    ...new Set(graphs.map((graph) => graph.configPath)),
-  ]
-  const configPath =
-    uniqueConfigPaths.length === 1 ? uniqueConfigPaths[0] : undefined
-
-  return {
-    cwd: firstGraph.cwd,
-    entryId: firstGraph.entryId,
-    entryIds: graphs.map((graph) => graph.entryId),
-    nodes,
-    ...(configPath === undefined ? {} : { configPath }),
-  }
-}
-
-interface MergedDependencyGraph extends DependencyGraph {
-  readonly entryIds: readonly string[]
 }

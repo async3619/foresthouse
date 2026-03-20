@@ -1,3 +1,63 @@
+## [1.1.0-dev.3](https://github.com/async3619/foresthouse/compare/v1.1.0-dev.2...v1.1.0-dev.3) (2026-03-20)
+
+### Performance
+
+* replace TypeScript program creation with OXC parser in import analyzer ([#98](https://github.com/async3619/foresthouse/issues/98)) ([d1cbe2e](https://github.com/async3619/foresthouse/commit/d1cbe2e8d04024d000205f1d47cb914e3240736d)), closes [#97](https://github.com/async3619/foresthouse/issues/97)
+
+## [1.1.0-dev.2](https://github.com/async3619/foresthouse/compare/v1.1.0-dev.1...v1.1.0-dev.2) (2026-03-20)
+
+### Performance
+
+* default import output to omit unused dependencies ([#94](https://github.com/async3619/foresthouse/issues/94)) ([2c03e59](https://github.com/async3619/foresthouse/commit/2c03e5975debe112d882379177405a9c29f82084))
+
+## [1.1.0-dev.1](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.7...v1.1.0-dev.1) (2026-03-20)
+
+### Features
+
+* add repository benchmark harness ([#90](https://github.com/async3619/foresthouse/issues/90)) ([6f8f90a](https://github.com/async3619/foresthouse/commit/6f8f90ac8580fa9163a946c91c3341d9ffd7fa00))
+
+## [1.0.1-dev.7](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.6...v1.0.1-dev.7) (2026-03-20)
+
+### Performance
+
+* cache repeated tsconfig lookups ([#88](https://github.com/async3619/foresthouse/issues/88)) ([b1ed879](https://github.com/async3619/foresthouse/commit/b1ed8791deda4ef673416b4b8211bb7add465682))
+
+## [1.0.1-dev.6](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.5...v1.0.1-dev.6) (2026-03-20)
+
+### Bug Fixes
+
+* skip ts program creation for react traversal ([#86](https://github.com/async3619/foresthouse/issues/86)) ([7647ec3](https://github.com/async3619/foresthouse/commit/7647ec3f92771618b117097522a3dc600465e285))
+
+## [1.0.1-dev.5](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.4...v1.0.1-dev.5) (2026-03-20)
+
+### Bug Fixes
+
+* resolve workspace tsconfig extends entries ([#85](https://github.com/async3619/foresthouse/issues/85)) ([16a5ae7](https://github.com/async3619/foresthouse/commit/16a5ae7dae802be90b5d6da7eef5803988477c5c))
+
+## [1.0.1-dev.4](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.3...v1.0.1-dev.4) (2026-03-20)
+
+### Performance
+
+* skip unused import tracking for react analysis ([#83](https://github.com/async3619/foresthouse/issues/83)) ([e0d3e32](https://github.com/async3619/foresthouse/commit/e0d3e32622d3e237d9ec3880ed0aa25afb8adb86))
+
+## [1.0.1-dev.3](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.2...v1.0.1-dev.3) (2026-03-20)
+
+### Performance
+
+* cache module resolution results during graph traversal ([#82](https://github.com/async3619/foresthouse/issues/82)) ([5b38018](https://github.com/async3619/foresthouse/commit/5b38018206ec8896ff93a242f034cab174ad6f61))
+
+## [1.0.1-dev.2](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.1...v1.0.1-dev.2) (2026-03-19)
+
+### Performance
+
+* cache line offsets for react usage locations ([#77](https://github.com/async3619/foresthouse/issues/77)) ([91bd312](https://github.com/async3619/foresthouse/commit/91bd3126fa4cda1b76ad3110a51d669cc54ea86f))
+
+## [1.0.1-dev.1](https://github.com/async3619/foresthouse/compare/v1.0.0...v1.0.1-dev.1) (2026-03-19)
+
+### Performance
+
+* share dependency graph across react entries ([#76](https://github.com/async3619/foresthouse/issues/76)) ([7423aba](https://github.com/async3619/foresthouse/commit/7423abae15560dd0f4ae0d8d0d49bebeaac39a5b))
+
 ## 1.0.0 (2026-03-18)
 
 ### Features
