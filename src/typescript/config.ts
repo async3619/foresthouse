@@ -4,6 +4,8 @@ import ts from 'typescript'
 
 import { createModuleResolutionHost } from './program.js'
 
+const nearestConfigCache = new Map<string, string | undefined>()
+const loadedConfigCache = new Map<string, LoadedConfig>()
 const workspaceRootCache = new Map<string, string | undefined>()
 const workspacePackageCache = new Map<string, ReadonlyMap<string, string>>()
 
@@ -16,15 +18,21 @@ export function loadCompilerOptions(
   searchFrom: string,
   explicitConfigPath?: string,
 ): LoadedConfig {
+  const resolvedSearchFrom = path.resolve(searchFrom)
   const configPath =
     explicitConfigPath === undefined
-      ? findNearestConfig(searchFrom)
-      : path.resolve(searchFrom, explicitConfigPath)
+      ? findNearestConfig(resolvedSearchFrom)
+      : path.resolve(resolvedSearchFrom, explicitConfigPath)
 
   if (configPath === undefined) {
     return {
       compilerOptions: defaultCompilerOptions(),
     }
+  }
+
+  const cached = loadedConfigCache.get(configPath)
+  if (cached !== undefined) {
+    return cached
   }
 
   let fatalDiagnostic: ts.Diagnostic | undefined
@@ -62,30 +70,52 @@ export function loadCompilerOptions(
     )
   }
 
-  return {
+  const loadedConfig = {
     path: configPath,
     compilerOptions: parsed.options,
   }
+  loadedConfigCache.set(configPath, loadedConfig)
+  return loadedConfig
 }
 
 function findNearestConfig(searchFrom: string): string | undefined {
   let currentDirectory = path.resolve(searchFrom)
+  const traversedDirectories: string[] = []
 
   while (true) {
+    const cached = nearestConfigCache.get(currentDirectory)
+    if (cached !== undefined || nearestConfigCache.has(currentDirectory)) {
+      traversedDirectories.forEach((directory) => {
+        nearestConfigCache.set(directory, cached)
+      })
+      return cached
+    }
+
+    traversedDirectories.push(currentDirectory)
+
     if (!isInsideNodeModules(currentDirectory)) {
       const tsconfigPath = path.join(currentDirectory, 'tsconfig.json')
       if (ts.sys.fileExists(tsconfigPath)) {
+        traversedDirectories.forEach((directory) => {
+          nearestConfigCache.set(directory, tsconfigPath)
+        })
         return tsconfigPath
       }
 
       const jsconfigPath = path.join(currentDirectory, 'jsconfig.json')
       if (ts.sys.fileExists(jsconfigPath)) {
+        traversedDirectories.forEach((directory) => {
+          nearestConfigCache.set(directory, jsconfigPath)
+        })
         return jsconfigPath
       }
     }
 
     const parentDirectory = path.dirname(currentDirectory)
     if (parentDirectory === currentDirectory) {
+      traversedDirectories.forEach((directory) => {
+        nearestConfigCache.set(directory, undefined)
+      })
       return undefined
     }
 

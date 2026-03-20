@@ -70,6 +70,26 @@ describe('loadCompilerOptions', () => {
     expect(loaded.compilerOptions.strict).toBe(true)
     expect(loaded.compilerOptions.jsx).toBe(ts.JsxEmit.ReactJSX)
   })
+
+  it('reuses parsed compiler options for repeated lookups under the same config', () => {
+    const projectDir = createTemporaryDirectory()
+    const srcDir = path.join(projectDir, 'src', 'nested')
+    fs.mkdirSync(srcDir, { recursive: true })
+    writeJson(path.join(projectDir, 'tsconfig.json'), {
+      compilerOptions: {
+        strict: true,
+        target: 'ES2022',
+      },
+    })
+    fs.writeFileSync(path.join(srcDir, 'index.ts'), 'export {}\n')
+
+    const firstLoaded = loadCompilerOptions(srcDir)
+    const secondLoaded = loadCompilerOptions(path.join(projectDir, 'src'))
+
+    expect(firstLoaded.path).toBe(path.join(projectDir, 'tsconfig.json'))
+    expect(secondLoaded.path).toBe(path.join(projectDir, 'tsconfig.json'))
+    expect(secondLoaded).toBe(firstLoaded)
+  })
 })
 
 function createTemporaryDirectory(): string {
