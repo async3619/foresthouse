@@ -68,6 +68,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.7",
+    "@codspeed/vitest-plugin": "^5.2.0",
     "@commitlint/cli": "20.4.4",
     "@commitlint/config-conventional": "20.4.4",
     "@semantic-release/changelog": "6.0.3",
