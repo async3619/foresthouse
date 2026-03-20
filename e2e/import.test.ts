@@ -58,7 +58,7 @@ describe('import command options', () => {
       '--no-workspaces',
       '--project-only',
       '--include-externals',
-      '--no-unused',
+      '--unused',
       '--json',
     ])
 
@@ -70,7 +70,7 @@ describe('import command options', () => {
       expandWorkspaces: false,
       projectOnly: true,
       includeExternals: true,
-      omitUnused: true,
+      omitUnused: false,
       json: true,
     })
   })
@@ -86,7 +86,7 @@ describe('import command options', () => {
       expandWorkspaces: true,
       projectOnly: false,
       includeExternals: false,
-      omitUnused: false,
+      omitUnused: true,
       json: false,
     })
   })

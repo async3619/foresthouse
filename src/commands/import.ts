@@ -10,7 +10,10 @@ export class ImportCommand extends BaseCommand<
   ImportCliOptions
 > {
   protected analyze(): DependencyGraph {
-    return analyzeDependencies(this.options.entryFile, this.getAnalyzeOptions())
+    return analyzeDependencies(this.options.entryFile, {
+      ...this.getAnalyzeOptions(),
+      trackUnusedImports: !this.options.omitUnused,
+    })
   }
 
   protected serialize(graph: DependencyGraph): object {

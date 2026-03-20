@@ -92,7 +92,7 @@ Options:
   --include-externals  Include packages and Node built-ins in the tree.
   --no-workspaces      Do not expand sibling workspace packages into source subtrees. (default: true)
   --project-only       Restrict traversal to the active tsconfig.json or jsconfig.json project.
-  --no-unused          Omit imports that are never referenced. (default: true)
+  --unused             Include imports that are never referenced.
   --json               Print the dependency tree as JSON.
   -h, --help           Display this message
 ```
