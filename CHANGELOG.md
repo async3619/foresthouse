@@ -1,3 +1,9 @@
+## [1.0.1-dev.5](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.4...v1.0.1-dev.5) (2026-03-20)
+
+### Bug Fixes
+
+* resolve workspace tsconfig extends entries ([#85](https://github.com/async3619/foresthouse/issues/85)) ([16a5ae7](https://github.com/async3619/foresthouse/commit/16a5ae7dae802be90b5d6da7eef5803988477c5c))
+
 ## [1.0.1-dev.4](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.3...v1.0.1-dev.4) (2026-03-20)
 
 ### Performance
