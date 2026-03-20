@@ -20,11 +20,13 @@
     "resolveJsonModule": true
   },
   "include": [
+    "bench/**/*.ts",
     "src/**/*.ts",
     "e2e/**/*.test.ts",
     "tsdown.config.ts",
     "vitest.config.ts",
     "vitest.unit.config.ts",
     "vitest.e2e.config.ts"
-  ]
+  ],
+  "exclude": ["bench/repos", "bench/results"]
 }
