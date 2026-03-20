@@ -1,3 +1,9 @@
+## [1.1.0-dev.1](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.7...v1.1.0-dev.1) (2026-03-20)
+
+### Features
+
+* add repository benchmark harness ([#90](https://github.com/async3619/foresthouse/issues/90)) ([6f8f90a](https://github.com/async3619/foresthouse/commit/6f8f90ac8580fa9163a946c91c3341d9ffd7fa00))
+
 ## [1.0.1-dev.7](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.6...v1.0.1-dev.7) (2026-03-20)
 
 ### Performance
