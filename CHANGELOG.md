@@ -1,3 +1,9 @@
+## [1.1.0-dev.3](https://github.com/async3619/foresthouse/compare/v1.1.0-dev.2...v1.1.0-dev.3) (2026-03-20)
+
+### Performance
+
+* replace TypeScript program creation with OXC parser in import analyzer ([#98](https://github.com/async3619/foresthouse/issues/98)) ([d1cbe2e](https://github.com/async3619/foresthouse/commit/d1cbe2e8d04024d000205f1d47cb914e3240736d)), closes [#97](https://github.com/async3619/foresthouse/issues/97)
+
 ## [1.1.0-dev.2](https://github.com/async3619/foresthouse/compare/v1.1.0-dev.1...v1.1.0-dev.2) (2026-03-20)
 
 ### Performance
