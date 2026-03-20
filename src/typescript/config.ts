@@ -84,10 +84,7 @@ function findNearestConfig(searchFrom: string): string | undefined {
 
   while (true) {
     const cached = nearestConfigCache.get(currentDirectory)
-    if (
-      cached !== undefined ||
-      nearestConfigCache.has(currentDirectory)
-    ) {
+    if (cached !== undefined || nearestConfigCache.has(currentDirectory)) {
       traversedDirectories.forEach((directory) => {
         nearestConfigCache.set(directory, cached)
       })
