@@ -36,4 +36,33 @@ describe('collectModuleReferences', () => {
       ),
     ).toEqual(['./dep.js', './exports.js', './required.js', './dynamic.js'])
   })
+
+  it('collects references without tracking unused imports when no checker is given', () => {
+    const sourceFile = ts.createSourceFile(
+      'fixture.ts',
+      [
+        "import { thing } from './dep.js'",
+        "export * from './exports.js'",
+        'console.log(thing)',
+      ].join('\n'),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    )
+
+    expect(collectModuleReferences(sourceFile)).toEqual([
+      {
+        specifier: './dep.js',
+        referenceKind: 'import',
+        isTypeOnly: false,
+        unused: false,
+      },
+      {
+        specifier: './exports.js',
+        referenceKind: 'export',
+        isTypeOnly: false,
+        unused: false,
+      },
+    ])
+  })
 })

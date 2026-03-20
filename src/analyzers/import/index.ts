@@ -57,6 +57,7 @@ class MultiEntryImportAnalyzer extends BaseAnalyzer<MultiEntryDependencyGraph> {
       cwd: this.cwd,
       expandWorkspaces: this.options.expandWorkspaces ?? true,
       projectOnly: this.options.projectOnly ?? false,
+      trackUnusedImports: this.options.trackUnusedImports ?? true,
     })
     const uniqueConfigPaths = [
       ...new Set(entryConfigs.map((entry) => entry.configPath)),
