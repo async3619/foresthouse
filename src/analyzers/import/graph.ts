@@ -1,7 +1,10 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import { ResolverFactory } from 'oxc-resolver'
 import type ts from 'typescript'
 
+import type { DependencyEdge } from '../../types/dependency-edge.js'
+import type { DependencyKind } from '../../types/dependency-kind.js'
 import type { SourceModuleNode } from '../../types/source-module-node.js'
 import { loadCompilerOptions } from '../../typescript/config.js'
 import { createProgram, createSourceFile } from '../../typescript/program.js'
@@ -37,6 +40,11 @@ class DependencyGraphBuilder {
   private readonly programCache = new Map<string, ts.Program>()
   private readonly checkerCache = new Map<string, ts.TypeChecker>()
   private readonly resolverCache = new Map<string, ResolverFactory>()
+  private readonly resolutionCache = new Map<
+    string,
+    CachedDependencyResolution
+  >()
+  private readonly packageRootCache = new Map<string, string | undefined>()
 
   constructor(
     private readonly entryConfigs: readonly EntryConfig[],
@@ -73,14 +81,12 @@ class DependencyGraphBuilder {
 
     const references = collectModuleReferences(sourceFile, checker)
     const dependencies = references.map((reference) =>
-      resolveDependency(reference, normalizedPath, {
-        cwd: this.options.cwd,
-        expandWorkspaces: this.options.expandWorkspaces,
-        projectOnly: this.options.projectOnly,
-        getConfigForFile: (targetPath) => this.getConfigForFile(targetPath),
-        getResolverForFile: (targetPath) => this.getResolverForFile(targetPath),
-        ...(entryConfigPath === undefined ? {} : { entryConfigPath }),
-      }),
+      this.resolveDependencyWithCache(
+        reference,
+        normalizedPath,
+        config,
+        entryConfigPath,
+      ),
     )
 
     this.nodes.set(normalizedPath, {
@@ -182,5 +188,126 @@ class DependencyGraphBuilder {
     })
     this.resolverCache.set(cacheKey, resolver)
     return resolver
+  }
+
+  private resolveDependencyWithCache(
+    reference: Parameters<typeof resolveDependency>[0],
+    containingFile: string,
+    config: import('./resolver.js').ResolverConfigContext,
+    entryConfigPath?: string,
+  ): DependencyEdge {
+    const cacheKey = this.getResolutionCacheKey(
+      reference.specifier,
+      containingFile,
+      config,
+      entryConfigPath,
+    )
+    const cachedResolution = this.resolutionCache.get(cacheKey)
+
+    if (cachedResolution !== undefined) {
+      return toDependencyEdge(reference, cachedResolution)
+    }
+
+    const resolved = resolveDependency(reference, containingFile, {
+      cwd: this.options.cwd,
+      expandWorkspaces: this.options.expandWorkspaces,
+      projectOnly: this.options.projectOnly,
+      getConfigForFile: (targetPath) => this.getConfigForFile(targetPath),
+      getResolverForFile: (targetPath) => this.getResolverForFile(targetPath),
+      ...(entryConfigPath === undefined ? {} : { entryConfigPath }),
+    })
+
+    this.resolutionCache.set(cacheKey, {
+      kind: resolved.kind,
+      target: resolved.target,
+      ...(resolved.boundary === undefined
+        ? {}
+        : { boundary: resolved.boundary }),
+    })
+
+    return resolved
+  }
+
+  private getResolutionCacheKey(
+    specifier: string,
+    containingFile: string,
+    config: import('./resolver.js').ResolverConfigContext,
+    entryConfigPath?: string,
+  ): string {
+    const scopeKey = entryConfigPath ?? ''
+
+    if (isPackageLikeImport(specifier)) {
+      const packageRoot =
+        this.getPackageRoot(containingFile) ?? path.dirname(containingFile)
+      return `package:${this.getProgramCacheKey(containingFile, config)}:${packageRoot}:${specifier}:${scopeKey}`
+    }
+
+    return `path:${path.dirname(containingFile)}:${specifier}:${scopeKey}`
+  }
+
+  private getPackageRoot(filePath: string): string | undefined {
+    const startDirectory = path.dirname(filePath)
+    if (this.packageRootCache.has(startDirectory)) {
+      return this.packageRootCache.get(startDirectory)
+    }
+
+    const traversedDirectories: string[] = []
+    let currentDirectory = startDirectory
+
+    while (true) {
+      if (this.packageRootCache.has(currentDirectory)) {
+        const cached = this.packageRootCache.get(currentDirectory)
+        traversedDirectories.forEach((directory) => {
+          this.packageRootCache.set(directory, cached)
+        })
+        return cached
+      }
+
+      traversedDirectories.push(currentDirectory)
+
+      if (fs.existsSync(path.join(currentDirectory, 'package.json'))) {
+        traversedDirectories.forEach((directory) => {
+          this.packageRootCache.set(directory, currentDirectory)
+        })
+        return currentDirectory
+      }
+
+      const parentDirectory = path.dirname(currentDirectory)
+      if (parentDirectory === currentDirectory) {
+        traversedDirectories.forEach((directory) => {
+          this.packageRootCache.set(directory, undefined)
+        })
+        return undefined
+      }
+
+      currentDirectory = parentDirectory
+    }
+  }
+}
+
+interface CachedDependencyResolution {
+  readonly kind: DependencyKind
+  readonly target: string
+  readonly boundary?: 'workspace' | 'project'
+}
+
+function isPackageLikeImport(specifier: string): boolean {
+  return !specifier.startsWith('.') && !path.isAbsolute(specifier)
+}
+
+function toDependencyEdge(
+  reference: Parameters<typeof resolveDependency>[0],
+  resolution: CachedDependencyResolution,
+): DependencyEdge {
+  return {
+    specifier: reference.specifier,
+    referenceKind: reference.referenceKind,
+    isTypeOnly: reference.isTypeOnly,
+    unused: reference.unused,
+    kind: resolution.kind,
+    target: resolution.target,
+    ...(resolution.boundary === undefined
+      ? {}
+      : { boundary: resolution.boundary }),
   }
 }
