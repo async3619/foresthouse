@@ -29,6 +29,7 @@ export interface BuildDependencyGraphOptions {
   readonly cwd: string
   readonly expandWorkspaces: boolean
   readonly projectOnly: boolean
+  readonly trackUnusedImports: boolean
 }
 
 class DependencyGraphBuilder {
@@ -75,7 +76,9 @@ class DependencyGraphBuilder {
 
     const config = this.getConfigForFile(normalizedPath)
     const program = this.getProgramForFile(normalizedPath, config)
-    const checker = this.getCheckerForFile(normalizedPath, config)
+    const checker = this.options.trackUnusedImports
+      ? this.getCheckerForFile(normalizedPath, config)
+      : undefined
     const sourceFile =
       program.getSourceFile(normalizedPath) ?? createSourceFile(normalizedPath)
 

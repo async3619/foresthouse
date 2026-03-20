@@ -12,10 +12,13 @@ export interface ModuleReference {
 
 export function collectModuleReferences(
   sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
+  checker?: ts.TypeChecker,
 ): ModuleReference[] {
   const references = new Map<string, ModuleReference>()
-  const unusedImports = collectUnusedImports(sourceFile, checker)
+  const unusedImports =
+    checker === undefined
+      ? new Map<ts.ImportDeclaration, boolean>()
+      : collectUnusedImports(sourceFile, checker)
 
   function addReference(
     specifier: string,

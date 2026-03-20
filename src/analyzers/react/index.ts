@@ -44,10 +44,10 @@ class ReactAnalyzer extends BaseAnalyzer<ReactUsageGraph> {
   }
 
   protected doAnalyze(): ReactUsageGraph {
-    const dependencyGraph = analyzeDependenciesForEntries(
-      this.entryFiles,
-      this.options,
-    )
+    const dependencyGraph = analyzeDependenciesForEntries(this.entryFiles, {
+      ...this.options,
+      trackUnusedImports: false,
+    })
     const fileAnalyses = this.collectFileAnalyses(dependencyGraph)
     const nodes = this.createNodes(fileAnalyses)
     this.attachUsages(fileAnalyses, nodes)

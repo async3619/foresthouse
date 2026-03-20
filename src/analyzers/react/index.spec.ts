@@ -50,7 +50,7 @@ describe('analyzeReactUsage', () => {
     expect(analyzeDependenciesForEntries).toHaveBeenCalledTimes(1)
     expect(analyzeDependenciesForEntries).toHaveBeenCalledWith(
       ['src/a.tsx', 'src/b.tsx'],
-      { cwd: '/repo' },
+      { cwd: '/repo', trackUnusedImports: false },
     )
   })
 })
