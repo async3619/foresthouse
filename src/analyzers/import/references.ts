@@ -1,7 +1,6 @@
-import ts from 'typescript'
+import { parseSync } from 'oxc-parser'
 
 import type { ReferenceKind } from '../../types/reference-kind.js'
-import { collectUnusedImports } from './unused.js'
 
 export interface ModuleReference {
   readonly specifier: string
@@ -11,14 +10,13 @@ export interface ModuleReference {
 }
 
 export function collectModuleReferences(
-  sourceFile: ts.SourceFile,
-  checker?: ts.TypeChecker,
+  filePath: string,
+  sourceText: string,
+  trackUnusedImports: boolean,
 ): ModuleReference[] {
+  const parseResult = parseSync(filePath, sourceText)
+  const mod = parseResult.module
   const references = new Map<string, ModuleReference>()
-  const unusedImports =
-    checker === undefined
-      ? new Map<ts.ImportDeclaration, boolean>()
-      : collectUnusedImports(sourceFile, checker)
 
   function addReference(
     specifier: string,
@@ -46,68 +44,144 @@ export function collectModuleReferences(
     })
   }
 
-  function visit(node: ts.Node): void {
-    if (
-      ts.isImportDeclaration(node) &&
-      ts.isStringLiteralLike(node.moduleSpecifier)
-    ) {
-      addReference(
-        node.moduleSpecifier.text,
-        'import',
-        node.importClause?.isTypeOnly ?? false,
-        unusedImports.get(node) ?? false,
-      )
-    } else if (
-      ts.isExportDeclaration(node) &&
-      node.moduleSpecifier !== undefined &&
-      ts.isStringLiteralLike(node.moduleSpecifier)
-    ) {
-      addReference(
-        node.moduleSpecifier.text,
-        'export',
-        node.isTypeOnly ?? false,
-        false,
-      )
-    } else if (ts.isImportEqualsDeclaration(node)) {
-      const moduleReference = node.moduleReference
-      if (
-        ts.isExternalModuleReference(moduleReference) &&
-        moduleReference.expression !== undefined &&
-        ts.isStringLiteralLike(moduleReference.expression)
-      ) {
-        addReference(
-          moduleReference.expression.text,
-          'import-equals',
-          false,
-          false,
-        )
-      }
-    } else if (ts.isCallExpression(node)) {
-      if (
-        node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-        node.arguments.length === 1
-      ) {
-        const [argument] = node.arguments
-        if (argument !== undefined && ts.isStringLiteralLike(argument)) {
-          addReference(argument.text, 'dynamic-import', false, false)
-        }
-      }
+  // Static imports
+  for (const imp of mod.staticImports) {
+    const specifier = imp.moduleRequest.value
+    const isTypeOnly =
+      imp.entries.length > 0 && imp.entries.every((e) => e.isType)
 
-      if (
-        ts.isIdentifier(node.expression) &&
-        node.expression.text === 'require' &&
-        node.arguments.length === 1
-      ) {
-        const [argument] = node.arguments
-        if (argument !== undefined && ts.isStringLiteralLike(argument)) {
-          addReference(argument.text, 'require', false, false)
+    let unused = false
+    if (trackUnusedImports && imp.entries.length > 0) {
+      const localNames = imp.entries.map((e) => e.localName.value)
+      unused = !isAnyNameUsedAfter(imp.end, localNames, sourceText)
+    }
+
+    addReference(specifier, 'import', isTypeOnly, unused)
+  }
+
+  // Static exports (re-exports only)
+  for (const exp of mod.staticExports) {
+    const reExportEntry = exp.entries.find((e) => e.moduleRequest !== null)
+    if (reExportEntry?.moduleRequest != null) {
+      const specifier = reExportEntry.moduleRequest.value
+      const isTypeOnly = exp.entries.every((e) => e.isType)
+      addReference(specifier, 'export', isTypeOnly, false)
+    }
+  }
+
+  // Dynamic imports
+  for (const di of mod.dynamicImports) {
+    const req = di.moduleRequest
+    if (req.start != null && req.end != null) {
+      const specifier = extractStringLiteral(sourceText, req.start, req.end)
+      if (specifier !== undefined) {
+        addReference(specifier, 'dynamic-import', false, false)
+      }
+    }
+  }
+
+  // require() and import-equals: only scan if source contains 'require('
+  if (sourceText.includes('require(')) {
+    collectRequireReferences(parseResult.program.body, addReference)
+  }
+
+  return [...references.values()]
+}
+
+function isAnyNameUsedAfter(
+  afterPosition: number,
+  names: string[],
+  sourceText: string,
+): boolean {
+  const restOfFile = sourceText.slice(afterPosition)
+  return names.some((name) => {
+    const regex = new RegExp(`\\b${escapeRegExp(name)}\\b`)
+    return regex.test(restOfFile)
+  })
+}
+
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function extractStringLiteral(
+  sourceText: string,
+  start: number,
+  end: number,
+): string | undefined {
+  const raw = sourceText.slice(start, end)
+  if (
+    (raw.startsWith("'") && raw.endsWith("'")) ||
+    (raw.startsWith('"') && raw.endsWith('"')) ||
+    (raw.startsWith('`') && raw.endsWith('`') && !raw.includes('${'))
+  ) {
+    return raw.slice(1, -1)
+  }
+
+  return undefined
+}
+
+function collectRequireReferences(
+  body: unknown[],
+  addReference: (
+    specifier: string,
+    kind: ReferenceKind,
+    isTypeOnly: boolean,
+    unused: boolean,
+  ) => void,
+): void {
+  function visit(node: unknown): void {
+    if (node === null || node === undefined || typeof node !== 'object') {
+      return
+    }
+
+    const n = node as Record<string, unknown>
+
+    // TSImportEqualsDeclaration: import foo = require('bar')
+    if (n.type === 'TSImportEqualsDeclaration') {
+      const moduleRef = n.moduleReference as Record<string, unknown> | undefined
+      if (moduleRef?.type === 'TSExternalModuleReference') {
+        const expr = moduleRef.expression as Record<string, unknown> | undefined
+        if (expr?.type === 'Literal' && typeof expr.value === 'string') {
+          addReference(expr.value, 'import-equals', false, false)
+          return
         }
       }
     }
 
-    ts.forEachChild(node, visit)
+    // require('...') calls
+    if (n.type === 'CallExpression') {
+      const callee = n.callee as Record<string, unknown> | undefined
+      const args = n.arguments as unknown[] | undefined
+      if (
+        callee?.type === 'Identifier' &&
+        callee.name === 'require' &&
+        Array.isArray(args) &&
+        args.length === 1
+      ) {
+        const arg = args[0] as Record<string, unknown> | undefined
+        if (arg?.type === 'Literal' && typeof arg.value === 'string') {
+          addReference(arg.value, 'require', false, false)
+          return
+        }
+      }
+    }
+
+    // Recurse into child nodes
+    for (const value of Object.values(n)) {
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item && typeof item === 'object' && 'type' in item) {
+            visit(item)
+          }
+        }
+      } else if (value && typeof value === 'object' && 'type' in value) {
+        visit(value)
+      }
+    }
   }
 
-  visit(sourceFile)
-  return [...references.values()]
+  for (const stmt of body) {
+    visit(stmt)
+  }
 }

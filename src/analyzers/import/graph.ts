@@ -7,7 +7,6 @@ import type { DependencyEdge } from '../../types/dependency-edge.js'
 import type { DependencyKind } from '../../types/dependency-kind.js'
 import type { SourceModuleNode } from '../../types/source-module-node.js'
 import { loadCompilerOptions } from '../../typescript/config.js'
-import { createProgram, createSourceFile } from '../../typescript/program.js'
 import { normalizeFilePath } from '../../utils/normalize-file-path.js'
 import { collectModuleReferences } from './references.js'
 import { resolveDependency } from './resolver.js'
@@ -38,8 +37,6 @@ class DependencyGraphBuilder {
     string,
     import('./resolver.js').ResolverConfigContext
   >()
-  private readonly programCache = new Map<string, ts.Program>()
-  private readonly checkerCache = new Map<string, ts.TypeChecker>()
   private readonly resolverCache = new Map<string, ResolverFactory>()
   private readonly resolutionCache = new Map<
     string,
@@ -75,12 +72,13 @@ class DependencyGraphBuilder {
     }
 
     const config = this.getConfigForFile(normalizedPath)
-    const checker = this.options.trackUnusedImports
-      ? this.getCheckerForFile(normalizedPath, config)
-      : undefined
-    const sourceFile = this.getSourceFileForFile(normalizedPath, config)
+    const sourceText = fs.readFileSync(normalizedPath, 'utf8')
 
-    const references = collectModuleReferences(sourceFile, checker)
+    const references = collectModuleReferences(
+      normalizedPath,
+      sourceText,
+      this.options.trackUnusedImports,
+    )
     const dependencies = references.map((reference) =>
       this.resolveDependencyWithCache(
         reference,
@@ -102,20 +100,6 @@ class DependencyGraphBuilder {
     }
   }
 
-  private getSourceFileForFile(
-    filePath: string,
-    config: import('./resolver.js').ResolverConfigContext,
-  ): ts.SourceFile {
-    if (!this.options.trackUnusedImports) {
-      return createSourceFile(filePath)
-    }
-
-    return (
-      this.getProgramForFile(filePath, config).getSourceFile(filePath) ??
-      createSourceFile(filePath)
-    )
-  }
-
   private getConfigForFile(
     filePath: string,
   ): import('./resolver.js').ResolverConfigContext {
@@ -130,45 +114,7 @@ class DependencyGraphBuilder {
     return loaded
   }
 
-  private getProgramForFile(
-    filePath: string,
-    config: import('./resolver.js').ResolverConfigContext,
-  ): ts.Program {
-    const cacheKey = this.getProgramCacheKey(filePath, config)
-    const cached = this.programCache.get(cacheKey)
-    if (cached !== undefined) {
-      return cached
-    }
-
-    const currentDirectory =
-      config.path === undefined
-        ? path.dirname(filePath)
-        : path.dirname(config.path)
-    const program = createProgram(
-      filePath,
-      config.compilerOptions,
-      currentDirectory,
-    )
-    this.programCache.set(cacheKey, program)
-    return program
-  }
-
-  private getCheckerForFile(
-    filePath: string,
-    config: import('./resolver.js').ResolverConfigContext,
-  ): ts.TypeChecker {
-    const cacheKey = this.getProgramCacheKey(filePath, config)
-    const cached = this.checkerCache.get(cacheKey)
-    if (cached !== undefined) {
-      return cached
-    }
-
-    const checker = this.getProgramForFile(filePath, config).getTypeChecker()
-    this.checkerCache.set(cacheKey, checker)
-    return checker
-  }
-
-  private getProgramCacheKey(
+  private getConfigCacheKey(
     filePath: string,
     config: import('./resolver.js').ResolverConfigContext,
   ): string {
@@ -177,7 +123,7 @@ class DependencyGraphBuilder {
 
   private getResolverForFile(filePath: string): ResolverFactory {
     const config = this.getConfigForFile(filePath)
-    const cacheKey = this.getProgramCacheKey(filePath, config)
+    const cacheKey = this.getConfigCacheKey(filePath, config)
     const cached = this.resolverCache.get(cacheKey)
     if (cached !== undefined) {
       return cached
@@ -254,7 +200,7 @@ class DependencyGraphBuilder {
     if (isPackageLikeImport(specifier)) {
       const packageRoot =
         this.getPackageRoot(containingFile) ?? path.dirname(containingFile)
-      return `package:${this.getProgramCacheKey(containingFile, config)}:${packageRoot}:${specifier}:${scopeKey}`
+      return `package:${this.getConfigCacheKey(containingFile, config)}:${packageRoot}:${specifier}:${scopeKey}`
     }
 
     return `path:${path.dirname(containingFile)}:${specifier}:${scopeKey}`
