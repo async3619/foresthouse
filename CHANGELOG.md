@@ -1,3 +1,9 @@
+## [1.0.1-dev.6](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.5...v1.0.1-dev.6) (2026-03-20)
+
+### Bug Fixes
+
+* skip ts program creation for react traversal ([#86](https://github.com/async3619/foresthouse/issues/86)) ([7647ec3](https://github.com/async3619/foresthouse/commit/7647ec3f92771618b117097522a3dc600465e285))
+
 ## [1.0.1-dev.5](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.4...v1.0.1-dev.5) (2026-03-20)
 
 ### Bug Fixes
