@@ -1,3 +1,9 @@
+## [1.0.1-dev.7](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.6...v1.0.1-dev.7) (2026-03-20)
+
+### Performance
+
+* cache repeated tsconfig lookups ([#88](https://github.com/async3619/foresthouse/issues/88)) ([b1ed879](https://github.com/async3619/foresthouse/commit/b1ed8791deda4ef673416b4b8211bb7add465682))
+
 ## [1.0.1-dev.6](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.5...v1.0.1-dev.6) (2026-03-20)
 
 ### Bug Fixes
