@@ -69,4 +69,46 @@ describe('buildDependencyGraph', () => {
       fs.rmSync(fixtureDir, { force: true, recursive: true })
     }
   })
+
+  it('skips TypeScript program creation for files without trackable import bindings', async () => {
+    const fixtureDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'foresthouse-import-graph-'),
+    )
+    const entryPath = path.join(fixtureDir, 'entry.ts')
+
+    fs.writeFileSync(entryPath, "import './dependency'\n")
+    fs.writeFileSync(
+      path.join(fixtureDir, 'dependency.ts'),
+      'export const dependency = 1\n',
+    )
+
+    createProgramMock.mockImplementation(() => {
+      throw new Error('createProgram should not be called')
+    })
+
+    const { buildDependencyGraph } = await import('./graph.js')
+
+    try {
+      const nodes = buildDependencyGraph(
+        [
+          {
+            entryPath,
+            compilerOptions: {},
+          },
+        ],
+        {
+          cwd: fixtureDir,
+          expandWorkspaces: true,
+          projectOnly: false,
+          trackUnusedImports: true,
+        },
+      )
+
+      expect(createProgramMock).not.toHaveBeenCalled()
+      expect(nodes.has(entryPath)).toBe(true)
+      expect(nodes.size).toBeGreaterThan(0)
+    } finally {
+      fs.rmSync(fixtureDir, { force: true, recursive: true })
+    }
+  })
 })

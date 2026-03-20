@@ -11,6 +11,7 @@ import { createProgram, createSourceFile } from '../../typescript/program.js'
 import { normalizeFilePath } from '../../utils/normalize-file-path.js'
 import { collectModuleReferences } from './references.js'
 import { resolveDependency } from './resolver.js'
+import { hasTrackableImportBindings } from './unused.js'
 
 export function buildDependencyGraph(
   entryConfigs: readonly EntryConfig[],
@@ -75,10 +76,16 @@ class DependencyGraphBuilder {
     }
 
     const config = this.getConfigForFile(normalizedPath)
-    const checker = this.options.trackUnusedImports
+    const syntaxSourceFile = createSourceFile(normalizedPath)
+    const shouldTrackUnusedImports =
+      this.options.trackUnusedImports &&
+      hasTrackableImportBindings(syntaxSourceFile)
+    const checker = shouldTrackUnusedImports
       ? this.getCheckerForFile(normalizedPath, config)
       : undefined
-    const sourceFile = this.getSourceFileForFile(normalizedPath, config)
+    const sourceFile = shouldTrackUnusedImports
+      ? this.getSourceFileForFile(normalizedPath, config)
+      : syntaxSourceFile
 
     const references = collectModuleReferences(sourceFile, checker)
     const dependencies = references.map((reference) =>

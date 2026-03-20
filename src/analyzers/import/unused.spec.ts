@@ -1,7 +1,33 @@
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
-import { collectUnusedImports } from './unused.js'
+import { collectUnusedImports, hasTrackableImportBindings } from './unused.js'
+
+describe('hasTrackableImportBindings', () => {
+  it('ignores side-effect-only imports', () => {
+    const sourceFile = ts.createSourceFile(
+      'fixture.ts',
+      "import './dep.js'\n",
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    )
+
+    expect(hasTrackableImportBindings(sourceFile)).toBe(false)
+  })
+
+  it('detects import declarations with bindings', () => {
+    const sourceFile = ts.createSourceFile(
+      'fixture.ts',
+      "import { thing } from './dep.js'\n",
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    )
+
+    expect(hasTrackableImportBindings(sourceFile)).toBe(true)
+  })
+})
 
 describe('collectUnusedImports', () => {
   it('marks tracked imports that are never referenced', () => {

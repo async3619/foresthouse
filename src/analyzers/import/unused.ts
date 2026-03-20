@@ -1,5 +1,15 @@
 import ts from 'typescript'
 
+export function hasTrackableImportBindings(sourceFile: ts.SourceFile): boolean {
+  return sourceFile.statements.some((statement) => {
+    return (
+      ts.isImportDeclaration(statement) &&
+      statement.importClause !== undefined &&
+      getImportBindingIdentifiers(statement.importClause).length > 0
+    )
+  })
+}
+
 export function collectUnusedImports(
   sourceFile: ts.SourceFile,
   checker: ts.TypeChecker,
