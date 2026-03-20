@@ -75,12 +75,10 @@ class DependencyGraphBuilder {
     }
 
     const config = this.getConfigForFile(normalizedPath)
-    const program = this.getProgramForFile(normalizedPath, config)
     const checker = this.options.trackUnusedImports
       ? this.getCheckerForFile(normalizedPath, config)
       : undefined
-    const sourceFile =
-      program.getSourceFile(normalizedPath) ?? createSourceFile(normalizedPath)
+    const sourceFile = this.getSourceFileForFile(normalizedPath, config)
 
     const references = collectModuleReferences(sourceFile, checker)
     const dependencies = references.map((reference) =>
@@ -102,6 +100,20 @@ class DependencyGraphBuilder {
         this.visitFile(dependency.target, entryConfigPath)
       }
     }
+  }
+
+  private getSourceFileForFile(
+    filePath: string,
+    config: import('./resolver.js').ResolverConfigContext,
+  ): ts.SourceFile {
+    if (!this.options.trackUnusedImports) {
+      return createSourceFile(filePath)
+    }
+
+    return (
+      this.getProgramForFile(filePath, config).getSourceFile(filePath) ??
+      createSourceFile(filePath)
+    )
   }
 
   private getConfigForFile(
