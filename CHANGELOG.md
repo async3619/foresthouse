@@ -1,3 +1,9 @@
+## [1.0.1-dev.4](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.3...v1.0.1-dev.4) (2026-03-20)
+
+### Performance
+
+* skip unused import tracking for react analysis ([#83](https://github.com/async3619/foresthouse/issues/83)) ([e0d3e32](https://github.com/async3619/foresthouse/commit/e0d3e32622d3e237d9ec3880ed0aa25afb8adb86))
+
 ## [1.0.1-dev.3](https://github.com/async3619/foresthouse/compare/v1.0.1-dev.2...v1.0.1-dev.3) (2026-03-20)
 
 ### Performance
