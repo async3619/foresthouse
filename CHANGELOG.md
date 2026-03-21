@@ -1,3 +1,9 @@
+## [1.1.1-dev.1](https://github.com/async3619/foresthouse/compare/v1.1.0...v1.1.1-dev.1) (2026-03-21)
+
+### Bug Fixes
+
+* **react:** resolve default re-export bindings from imported identifiers ([#105](https://github.com/async3619/foresthouse/issues/105)) ([2e97e90](https://github.com/async3619/foresthouse/commit/2e97e90c1f18f43805ff608925aadc095818f9df)), closes [#103](https://github.com/async3619/foresthouse/issues/103)
+
 ## [1.1.0](https://github.com/async3619/foresthouse/compare/v1.0.0...v1.1.0) (2026-03-20)
 
 ### Features
