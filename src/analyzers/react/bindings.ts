@@ -42,7 +42,13 @@ export function collectImportsAndExports(
       collectExportAllBindings(statement, sourceDependencies, exportAllBindings)
       return
     case 'ExportDefaultDeclaration':
-      collectDefaultExport(statement, symbolsByName, exportsByName)
+      collectDefaultExport(
+        statement,
+        symbolsByName,
+        importsByLocalName,
+        exportsByName,
+        reExportBindingsByName,
+      )
       return
     default:
       return
@@ -198,7 +204,9 @@ function collectExportAllBindings(
 function collectDefaultExport(
   declaration: ExportDefaultDeclaration,
   symbolsByName: ReadonlyMap<string, PendingReactUsageNode>,
+  importsByLocalName: ReadonlyMap<string, ImportBinding>,
   exportsByName: Map<string, string>,
+  reExportBindingsByName: Map<string, ImportBinding>,
 ): void {
   if (
     declaration.declaration.type === 'FunctionDeclaration' ||
@@ -212,12 +220,15 @@ function collectDefaultExport(
   }
 
   if (declaration.declaration.type === 'Identifier') {
-    addExportBinding(
-      declaration.declaration.name,
-      'default',
-      symbolsByName,
-      exportsByName,
-    )
+    const localName = declaration.declaration.name
+    addExportBinding(localName, 'default', symbolsByName, exportsByName)
+
+    if (!exportsByName.has('default')) {
+      const importBinding = importsByLocalName.get(localName)
+      if (importBinding !== undefined) {
+        reExportBindingsByName.set('default', importBinding)
+      }
+    }
     return
   }
 
