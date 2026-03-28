@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { analyzeDependenciesForEntries } from '../import/index.js'
+import { analyzeReactUsageDiff } from './diff.js'
 import { analyzeReactFile } from './file.js'
 import { analyzeReactUsage } from './index.js'
 
@@ -22,6 +23,10 @@ afterEach(() => {
 describe('analyzeReactUsage', () => {
   it('exports a callable react analyzer', () => {
     expect(analyzeReactUsage).toBeTypeOf('function')
+  })
+
+  it('exports a callable react diff analyzer', () => {
+    expect(analyzeReactUsageDiff).toBeTypeOf('function')
   })
 
   it('builds dependencies once for multi-entry analysis', () => {

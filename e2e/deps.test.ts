@@ -44,6 +44,7 @@ const pnpmMonorepoFixtureDirectory = path.join(
   'deps-pnpm-monorepo',
 )
 const temporaryDirectories: string[] = []
+const GIT_EXEC_MAX_BUFFER = 64 * 1024 * 1024
 
 afterEach(() => {
   temporaryDirectories.splice(0).forEach((directory) => {
@@ -1078,6 +1079,7 @@ function runGit(repositoryRoot: string, args: readonly string[]): string {
   return execFileSync('git', args, {
     cwd: repositoryRoot,
     encoding: 'utf8',
+    maxBuffer: GIT_EXEC_MAX_BUFFER,
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim()
 }

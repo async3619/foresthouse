@@ -23,6 +23,7 @@ describe('react entry file helpers', () => {
       resolveReactEntryFiles({
         command: 'react',
         entryFile: 'src/main.tsx',
+        diff: undefined,
         cwd: '/repo',
         configPath: undefined,
         expandWorkspaces: true,
@@ -40,6 +41,7 @@ describe('react entry file helpers', () => {
       resolveReactEntryFiles({
         command: 'react',
         entryFile: undefined,
+        diff: undefined,
         cwd: '/repo',
         configPath: undefined,
         expandWorkspaces: true,

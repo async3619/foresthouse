@@ -1,7 +1,10 @@
+import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { main } from '../src/app/cli.js'
 import {
@@ -11,7 +14,10 @@ import {
 import { runCli } from '../src/app/run.js'
 import {
   analyzeReactUsage,
+  analyzeReactUsageDiff,
+  diffGraphToSerializableReactTree,
   graphToSerializableReactTree,
+  printReactUsageDiffTree,
   printReactUsageTree,
 } from '../src/index.js'
 
@@ -43,6 +49,14 @@ const nextjsFixtureDirectory = path.join(
   'fixtures',
   'nextjs-mode',
 )
+const temporaryDirectories: string[] = []
+const GIT_EXEC_MAX_BUFFER = 64 * 1024 * 1024
+
+afterEach(() => {
+  temporaryDirectories.splice(0).forEach((directory) => {
+    fs.rmSync(directory, { recursive: true, force: true })
+  })
+})
 
 beforeEach(() => {
   vi.mocked(runCli).mockReset()
@@ -61,6 +75,8 @@ describe('react command options', () => {
       '--project-only',
       '--json',
       '--builtin',
+      '--diff',
+      'HEAD~1',
       '--filter',
       'hook',
     ])
@@ -68,6 +84,7 @@ describe('react command options', () => {
     expect(runCli).toHaveBeenCalledWith({
       command: 'react',
       entryFile: 'src/main.tsx',
+      diff: 'HEAD~1',
       cwd: 'test/fixtures/react-mode',
       configPath: 'tsconfig.json',
       expandWorkspaces: false,
@@ -85,6 +102,7 @@ describe('react command options', () => {
     expect(runCli).toHaveBeenCalledWith({
       command: 'react',
       entryFile: undefined,
+      diff: undefined,
       cwd: 'test/fixtures/nextjs-mode',
       configPath: undefined,
       expandWorkspaces: true,
@@ -102,6 +120,7 @@ describe('react command options', () => {
     expect(runCli).toHaveBeenCalledWith({
       command: 'react',
       entryFile: 'src/main.tsx',
+      diff: undefined,
       cwd: undefined,
       configPath: undefined,
       expandWorkspaces: true,
@@ -119,6 +138,7 @@ describe('react command options', () => {
     expect(runCli).toHaveBeenCalledWith({
       command: 'react',
       entryFile: 'pages/index.tsx',
+      diff: undefined,
       cwd: undefined,
       configPath: undefined,
       expandWorkspaces: true,
@@ -146,6 +166,7 @@ describe('react entry discovery', () => {
       resolveReactEntryFiles({
         command: 'react',
         entryFile: 'pages/index.tsx',
+        diff: undefined,
         cwd: nextjsFixtureDirectory,
         configPath: undefined,
         expandWorkspaces: true,
@@ -781,3 +802,211 @@ describe('analyzeReactUsage', () => {
     })
   })
 })
+
+describe('analyzeReactUsageDiff', () => {
+  it('prints React tree changes for a Git range', () => {
+    const repositoryRoot = createGitRepository([
+      {
+        message: 'initial',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'react-diff-fixture',
+              private: true,
+            },
+            null,
+            2,
+          ),
+          'tsconfig.json': JSON.stringify(
+            {
+              compilerOptions: {
+                jsx: 'react-jsx',
+              },
+            },
+            null,
+            2,
+          ),
+          'src/main.tsx': [
+            "import { AppShell } from './AppShell'",
+            '',
+            'void (<AppShell />)',
+            '',
+          ].join('\n'),
+          'src/AppShell.tsx': [
+            "import { Panel } from './components/Panel'",
+            '',
+            'export function AppShell() {',
+            '  return <Panel />',
+            '}',
+            '',
+          ].join('\n'),
+          'src/components/Panel.tsx': [
+            'export function Panel() {',
+            '  return <section />',
+            '}',
+            '',
+          ].join('\n'),
+        },
+      },
+      {
+        message: 'swap rendered component',
+        files: {
+          'package.json': JSON.stringify(
+            {
+              name: 'react-diff-fixture',
+              private: true,
+            },
+            null,
+            2,
+          ),
+          'tsconfig.json': JSON.stringify(
+            {
+              compilerOptions: {
+                jsx: 'react-jsx',
+              },
+            },
+            null,
+            2,
+          ),
+          'src/main.tsx': [
+            "import { AppShell } from './AppShell'",
+            '',
+            'void (<AppShell />)',
+            '',
+          ].join('\n'),
+          'src/AppShell.tsx': [
+            "import { Button } from './components/Button'",
+            '',
+            'export function AppShell() {',
+            '  return <Button />',
+            '}',
+            '',
+          ].join('\n'),
+          'src/components/Button.tsx': [
+            'export function Button() {',
+            '  return <button />',
+            '}',
+            '',
+          ].join('\n'),
+        },
+      },
+    ])
+
+    const graph = analyzeReactUsageDiff({
+      command: 'react',
+      entryFile: 'src/main.tsx',
+      diff: 'HEAD~1..HEAD',
+      cwd: repositoryRoot,
+      configPath: undefined,
+      expandWorkspaces: true,
+      projectOnly: false,
+      json: false,
+      filter: 'component',
+      nextjs: false,
+      includeBuiltins: false,
+    })
+    const output = printReactUsageDiffTree(graph, {
+      color: false,
+    })
+    const jsonTree = diffGraphToSerializableReactTree(graph)
+
+    expect(output).toBe(
+      [
+        '~ src/main.tsx:3:7',
+        '~ <AppShell /> [component] (src/AppShell.tsx)',
+        '├─ + <Button /> [component] (src/components/Button.tsx)',
+        '└─ - <Panel /> [component] (src/components/Panel.tsx)',
+      ].join('\n'),
+    )
+    expect(jsonTree).toMatchObject({
+      kind: 'react-usage-diff',
+      entries: [
+        expect.objectContaining({
+          change: 'unchanged',
+          afterFilePath: 'src/main.tsx',
+          afterLine: 3,
+          afterColumn: 7,
+          node: expect.objectContaining({
+            name: 'AppShell',
+            change: 'changed',
+            usages: expect.arrayContaining([
+              expect.objectContaining({
+                change: 'added',
+                referenceName: 'Button',
+                node: expect.objectContaining({
+                  name: 'Button',
+                  change: 'added',
+                }),
+              }),
+              expect.objectContaining({
+                change: 'removed',
+                referenceName: 'Panel',
+                node: expect.objectContaining({
+                  name: 'Panel',
+                  change: 'removed',
+                }),
+              }),
+            ]),
+          }),
+        }),
+      ],
+    })
+  })
+})
+
+function createGitRepository(
+  commits: readonly {
+    readonly message: string
+    readonly files: Readonly<Record<string, string>>
+  }[],
+): string {
+  const repositoryRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'foresthouse-react-git-fixture-'),
+  )
+
+  temporaryDirectories.push(repositoryRoot)
+
+  runGit(repositoryRoot, ['init', '--initial-branch=main'])
+  runGit(repositoryRoot, ['config', 'user.name', 'Foresthouse Tests'])
+  runGit(repositoryRoot, ['config', 'user.email', 'tests@example.com'])
+
+  commits.forEach((commit) => {
+    replaceRepositoryFiles(repositoryRoot, commit.files)
+    runGit(repositoryRoot, ['add', '-A'])
+    runGit(repositoryRoot, ['commit', '-m', commit.message])
+  })
+
+  return repositoryRoot
+}
+
+function replaceRepositoryFiles(
+  repositoryRoot: string,
+  files: Readonly<Record<string, string>>,
+): void {
+  fs.readdirSync(repositoryRoot, { withFileTypes: true }).forEach((entry) => {
+    if (entry.name === '.git') {
+      return
+    }
+
+    fs.rmSync(path.join(repositoryRoot, entry.name), {
+      recursive: true,
+      force: true,
+    })
+  })
+
+  Object.entries(files).forEach(([relativePath, fileContent]) => {
+    const absolutePath = path.join(repositoryRoot, relativePath)
+
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true })
+    fs.writeFileSync(absolutePath, fileContent)
+  })
+}
+
+function runGit(repositoryRoot: string, args: readonly string[]): string {
+  return execFileSync('git', args, {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    maxBuffer: GIT_EXEC_MAX_BUFFER,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim()
+}

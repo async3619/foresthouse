@@ -24,6 +24,7 @@ export interface DepsCliOptions extends BaseCliOptions {
 export interface ReactCliOptions extends BaseCliOptions {
   readonly command: 'react'
   readonly entryFile: string | undefined
+  readonly diff: string | undefined
   readonly filter: ReactUsageFilter
   readonly nextjs: boolean
   readonly includeBuiltins: boolean

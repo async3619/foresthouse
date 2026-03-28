@@ -29,6 +29,7 @@ bunx foresthouse --help
 - Honors the nearest `tsconfig.json` or `jsconfig.json`, including `baseUrl` and `paths`
 - Expands sibling workspace packages by default, including their own `tsconfig` alias rules
 - Analyzes React component and hook usage trees from explicit entry files or inferred Next.js app and pages routes
+- Shows React tree changes relative to a Git ref or range with `foresthouse react --diff`
 - Reads `package.json` manifests to show package-level dependency trees for single packages and monorepos
 - Shows dependency-tree changes relative to a Git ref or range with `foresthouse deps --diff`
 - Prints an ASCII tree by default, or JSON with `--json`
@@ -58,7 +59,7 @@ Options:
 ### Commands
 
 - `foresthouse import <entry-file>`: analyzes a JavaScript or TypeScript entry file and prints a dependency tree by following imports, re-exports, `require()`, and dynamic `import()`.
-- `foresthouse react [entry-file]`: analyzes React component, hook, and render relationships and prints a React usage tree. It also supports automatic Next.js entry discovery with `--nextjs`.
+- `foresthouse react [entry-file]`: analyzes React component, hook, and render relationships and prints a React usage tree. It also supports automatic Next.js entry discovery with `--nextjs`, plus Git-based tree diffs with `--diff`.
 - `foresthouse deps <directory>`: reads `package.json` manifests and workspace structure from a package directory and prints a package dependency tree. Use `--diff` to show only changes relative to a Git ref or range.
 
 ### Example
@@ -107,6 +108,7 @@ Usage:
   $ foresthouse react [entry-file] [options]
 
 Options:
+  --diff <git-ref-or-range>  Show only React tree changes relative to a Git revision or range.
   --cwd <path>     Working directory used for relative paths.
   --config <path>  Explicit tsconfig.json or jsconfig.json path.
   --nextjs         Infer Next.js page entries from app/ and pages/ when no entry is provided.
@@ -117,6 +119,19 @@ Options:
   --json           Print the React usage tree as JSON.
   -h, --help       Display this message
 ```
+
+React diff mode compares React usage graphs rather than raw file text diffs. A single ref like `--diff HEAD~3` compares that tree to the current working tree, while ranges such as `HEAD~3..HEAD` or `origin/dev...HEAD` compare two committed Git trees.
+
+Example React diff output:
+
+```text
+~ apps/site/pages/index.tsx:21:45
+~ <Home /> [component] (apps/site/pages/index.tsx)
+└─ ~ <Hero /> [component] (apps/site/src/features/Main/Hero/Hero.tsx)
+   └─ + useForm() [hook] (react-hook-form)
+```
+
+In this example, the page entry itself is unchanged as source text, but its reachable React graph changed because `<Hero />` started calling `useForm()`.
 
 ### `foresthouse deps --help`
 
@@ -137,6 +152,8 @@ Common examples:
 - `foresthouse import src/main.ts`
 - `foresthouse import --entry src/main.ts --cwd test/fixtures/basic`
 - `foresthouse react src/App.tsx`
+- `foresthouse react src/App.tsx --diff origin/dev...HEAD`
+- `foresthouse react pages/index.tsx --cwd . --diff HEAD~3..HEAD`
 - `foresthouse react --nextjs --cwd .`
 - `foresthouse deps .`
 - `foresthouse deps ./packages/a`
@@ -270,3 +287,4 @@ pnpm run check
 
 - Unit tests live next to source files as `src/**/*.spec.ts`.
 - End-to-end command tests live under `e2e/`.
+- Benchmarks live next to analyzers as `src/**/*.bench.ts` and run with `pnpm exec vitest bench --run --config vitest.bench.config.ts`.
