@@ -1,3 +1,17 @@
+## [1.2.0-dev.1](https://github.com/async3619/foresthouse/compare/v1.1.1-dev.1...v1.2.0-dev.1) (2026-03-28)
+
+### Features
+
+* **react:** add usage diff and benchmark coverage ([#107](https://github.com/async3619/foresthouse/issues/107)) ([4ae9e65](https://github.com/async3619/foresthouse/commit/4ae9e6588a34e01340e3482bc891363c5fa6264b))
+
+### Bug Fixes
+
+* **react:** resolve builtin elements from namespace-imported styled-components ([#110](https://github.com/async3619/foresthouse/issues/110)) ([2a76067](https://github.com/async3619/foresthouse/commit/2a760675f53955a24f598a087756174e402a3527))
+
+### Performance
+
+* **react:** optimize git tree materialization for diff ([#109](https://github.com/async3619/foresthouse/issues/109)) ([b38bf71](https://github.com/async3619/foresthouse/commit/b38bf716c72fbc4e1a245242aa602393fb45749c))
+
 ## [1.1.1-dev.1](https://github.com/async3619/foresthouse/compare/v1.1.0...v1.1.1-dev.1) (2026-03-21)
 
 ### Bug Fixes
