@@ -266,6 +266,249 @@ describe('printReactUsageDiffTree', () => {
     expect(output).toContain('App')
   })
 
+  it('prints changed entry with before and after locations', () => {
+    const graph: ReactUsageDiffGraph = {
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [
+        {
+          key: 'entry:App',
+          change: 'changed',
+          targetId: 'comp:App',
+          referenceName: 'App',
+          beforeFilePath: 'src/old.tsx',
+          beforeLine: 1,
+          beforeColumn: 1,
+          afterFilePath: 'src/new.tsx',
+          afterLine: 5,
+          afterColumn: 3,
+          node: {
+            id: 'comp:App',
+            name: 'App',
+            symbolKind: 'component',
+            filePath: 'src/App.tsx',
+            change: 'changed',
+            exportNames: ['default'],
+            usages: [],
+          },
+        },
+      ],
+      roots: [],
+    }
+
+    const output = printReactUsageDiffTree(graph, { color: false })
+    expect(output).toContain('src/old.tsx:1:1 -> src/new.tsx:5:3')
+  })
+
+  it('propagates node change to unchanged entries', () => {
+    const graph: ReactUsageDiffGraph = {
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [
+        {
+          key: 'entry:App',
+          change: 'unchanged',
+          targetId: 'comp:App',
+          referenceName: 'App',
+          afterFilePath: 'src/main.tsx',
+          afterLine: 1,
+          afterColumn: 1,
+          node: {
+            id: 'comp:App',
+            name: 'App',
+            symbolKind: 'component',
+            filePath: 'src/App.tsx',
+            change: 'added',
+            exportNames: [],
+            usages: [],
+          },
+        },
+      ],
+      roots: [],
+    }
+
+    const output = printReactUsageDiffTree(graph, { color: false })
+    expect(output).toContain('+')
+  })
+
+  it('shows alias change in diff', () => {
+    const graph: ReactUsageDiffGraph = {
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [],
+      roots: [
+        {
+          id: 'comp:App',
+          name: 'App',
+          symbolKind: 'component',
+          filePath: 'src/App.tsx',
+          change: 'changed',
+          exportNames: ['default'],
+          usages: [
+            {
+              key: 'edge:Btn',
+              kind: 'render',
+              change: 'changed',
+              targetId: 'comp:Button',
+              referenceName: 'Btn',
+              beforeReferenceName: 'OldBtn',
+              afterReferenceName: 'NewBtn',
+              node: {
+                id: 'comp:Button',
+                name: 'Button',
+                symbolKind: 'component',
+                filePath: 'src/Button.tsx',
+                change: 'unchanged',
+                exportNames: [],
+                usages: [],
+              },
+            },
+          ],
+        },
+      ],
+    }
+
+    const output = printReactUsageDiffTree(graph, { color: false })
+    expect(output).toContain('as OldBtn -> NewBtn')
+  })
+
+  it('prints multiple diff roots separated by blank lines', () => {
+    const graph: ReactUsageDiffGraph = {
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [],
+      roots: [
+        {
+          id: 'comp:A',
+          name: 'A',
+          symbolKind: 'component',
+          filePath: 'src/a.tsx',
+          change: 'added',
+          exportNames: [],
+          usages: [],
+        },
+        {
+          id: 'comp:B',
+          name: 'B',
+          symbolKind: 'component',
+          filePath: 'src/b.tsx',
+          change: 'removed',
+          exportNames: [],
+          usages: [],
+        },
+      ],
+    }
+
+    const output = printReactUsageDiffTree(graph, { color: false })
+    const lines = output.split('\n')
+    expect(lines.some((l) => l === '')).toBe(true)
+  })
+
+  it('propagates node change to unchanged usage edges', () => {
+    const graph: ReactUsageDiffGraph = {
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [],
+      roots: [
+        {
+          id: 'comp:A',
+          name: 'A',
+          symbolKind: 'component',
+          filePath: 'src/a.tsx',
+          change: 'unchanged',
+          exportNames: [],
+          usages: [
+            {
+              key: 'edge:B',
+              kind: 'render',
+              change: 'unchanged',
+              targetId: 'comp:B',
+              referenceName: 'B',
+              node: {
+                id: 'comp:B',
+                name: 'B',
+                symbolKind: 'component',
+                filePath: 'src/b.tsx',
+                change: 'added',
+                exportNames: [],
+                usages: [],
+              },
+            },
+          ],
+        },
+      ],
+    }
+
+    const output = printReactUsageDiffTree(graph, { color: false })
+    expect(output).toContain('+')
+  })
+
+  it('shows before-only location fallback in entry', () => {
+    const graph: ReactUsageDiffGraph = {
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [
+        {
+          key: 'entry:App',
+          change: 'removed',
+          targetId: 'comp:App',
+          referenceName: 'App',
+          beforeFilePath: 'src/old.tsx',
+          beforeLine: 2,
+          beforeColumn: 5,
+          node: {
+            id: 'comp:App',
+            name: 'App',
+            symbolKind: 'component',
+            filePath: 'src/App.tsx',
+            change: 'removed',
+            exportNames: [],
+            usages: [],
+          },
+        },
+      ],
+      roots: [],
+    }
+
+    const output = printReactUsageDiffTree(graph, { color: false })
+    expect(output).toContain('src/old.tsx:2:5')
+  })
+
+  it('falls back to referenceName when no location available', () => {
+    const graph: ReactUsageDiffGraph = {
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [
+        {
+          key: 'entry:App',
+          change: 'added',
+          targetId: 'comp:App',
+          referenceName: 'App',
+          node: {
+            id: 'comp:App',
+            name: 'App',
+            symbolKind: 'component',
+            filePath: 'src/App.tsx',
+            change: 'added',
+            exportNames: [],
+            usages: [],
+          },
+        },
+      ],
+      roots: [],
+    }
+
+    const output = printReactUsageDiffTree(graph, { color: false })
+    expect(output).toContain('App')
+  })
+
   it('marks circular diff nodes', () => {
     const graph: ReactUsageDiffGraph = {
       kind: 'react-usage-diff',

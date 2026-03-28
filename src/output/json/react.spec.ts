@@ -197,4 +197,145 @@ describe('diffGraphToSerializableReactTree', () => {
     const diffRoot = roots[0] as Record<string, unknown>
     expect(diffRoot.change).toBe('added')
   })
+
+  it('serializes entries with before/after reference names and locations', () => {
+    const tree = diffGraphToSerializableReactTree({
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [
+        {
+          key: 'entry:App',
+          change: 'changed',
+          targetId: 'comp:App',
+          referenceName: 'App',
+          beforeReferenceName: 'OldApp',
+          afterReferenceName: 'NewApp',
+          beforeFilePath: 'src/old.tsx',
+          beforeLine: 1,
+          beforeColumn: 1,
+          afterFilePath: 'src/new.tsx',
+          afterLine: 5,
+          afterColumn: 3,
+          node: {
+            id: 'comp:App',
+            name: 'App',
+            symbolKind: 'component',
+            filePath: 'src/App.tsx',
+            change: 'changed',
+            exportNames: ['default'],
+            beforeExportNames: ['default'],
+            afterExportNames: ['default', 'App'],
+            usages: [],
+          },
+        },
+      ],
+      roots: [],
+    }) as Record<string, unknown>
+
+    const entries = tree.entries as Record<string, unknown>[]
+    const entry = entries[0] as Record<string, unknown>
+    expect(entry.beforeReferenceName).toBe('OldApp')
+    expect(entry.afterReferenceName).toBe('NewApp')
+    expect(entry.beforeFilePath).toBe('src/old.tsx')
+    expect(entry.afterFilePath).toBe('src/new.tsx')
+    expect(entry.beforeLine).toBe(1)
+    expect(entry.afterLine).toBe(5)
+
+    const node = entry.node as Record<string, unknown>
+    expect(node.beforeExportNames).toEqual(['default'])
+    expect(node.afterExportNames).toEqual(['default', 'App'])
+  })
+
+  it('serializes edges with before/after reference names', () => {
+    const tree = diffGraphToSerializableReactTree({
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [],
+      roots: [
+        {
+          id: 'comp:A',
+          name: 'A',
+          symbolKind: 'component',
+          filePath: 'src/a.tsx',
+          change: 'unchanged',
+          exportNames: [],
+          usages: [
+            {
+              key: 'edge:B',
+              kind: 'render',
+              change: 'changed',
+              targetId: 'comp:B',
+              referenceName: 'B',
+              beforeReferenceName: 'OldB',
+              afterReferenceName: 'NewB',
+              node: {
+                id: 'comp:B',
+                name: 'B',
+                symbolKind: 'component',
+                filePath: 'src/b.tsx',
+                change: 'unchanged',
+                exportNames: [],
+                usages: [],
+              },
+            },
+          ],
+        },
+      ],
+    }) as Record<string, unknown>
+
+    const roots = tree.roots as Record<string, unknown>[]
+    const root = roots[0] as Record<string, unknown>
+    const usages = root.usages as Record<string, unknown>[]
+    const usage = usages[0] as Record<string, unknown>
+    expect(usage.beforeReferenceName).toBe('OldB')
+    expect(usage.afterReferenceName).toBe('NewB')
+    expect(usage.change).toBe('changed')
+  })
+
+  it('serializes circular diff nodes', () => {
+    const tree = diffGraphToSerializableReactTree({
+      kind: 'react-usage-diff',
+      repositoryRoot: '/repo',
+      cwd: '/project',
+      entries: [],
+      roots: [
+        {
+          id: 'comp:A',
+          name: 'A',
+          symbolKind: 'component',
+          filePath: 'src/a.tsx',
+          change: 'unchanged',
+          exportNames: [],
+          usages: [
+            {
+              key: 'edge:B',
+              kind: 'render',
+              change: 'unchanged',
+              targetId: 'comp:B',
+              referenceName: 'B',
+              node: {
+                id: 'comp:B',
+                name: 'B',
+                symbolKind: 'component',
+                circular: true,
+                filePath: 'src/b.tsx',
+                change: 'unchanged',
+                exportNames: [],
+                usages: [],
+              },
+            },
+          ],
+        },
+      ],
+    }) as Record<string, unknown>
+
+    const roots = tree.roots as Record<string, unknown>[]
+    const root = roots[0] as Record<string, unknown>
+    const usages = root.usages as Record<string, unknown>[]
+    const usage = usages[0] as Record<string, unknown>
+    const node = usage.node as Record<string, unknown>
+    expect(node.circular).toBe(true)
+  })
 })
