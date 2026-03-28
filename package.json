@@ -43,7 +43,7 @@
     "test": "vitest run --reporter=verbose --config vitest.config.ts",
     "test:unit": "vitest run --reporter=verbose --config vitest.unit.config.ts",
     "test:e2e": "vitest run --reporter=verbose --config vitest.e2e.config.ts",
-    "test:coverage": "vitest run --reporter=verbose --coverage --config vitest.config.ts",
+    "test:coverage": "vitest run --reporter=verbose --coverage --config vitest.unit.config.ts",
     "typecheck": "tsc --noEmit",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
     "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
