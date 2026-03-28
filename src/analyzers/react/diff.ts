@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -97,11 +97,7 @@ export function analyzeReactUsageDiff(
     includeBuiltins: options.includeBuiltins,
     analyzeOptions: toAnalyzeOptions(options),
   }
-  const beforeGraph = loadGitTreeGraph(context, comparison.beforeTree)
-  const afterGraph =
-    comparison.afterTree === undefined
-      ? loadWorkingTreeGraph(context)
-      : loadGitTreeGraph(context, comparison.afterTree)
+  const [beforeGraph, afterGraph] = loadBothGraphs(context, comparison)
 
   if (beforeGraph === undefined && afterGraph === undefined) {
     throw new Error(
@@ -154,22 +150,40 @@ function toAnalyzeOptions(options: ReactCliOptions): AnalyzeOptions {
   }
 }
 
-function loadWorkingTreeGraph(
+function loadBothGraphs(
   context: ReactDiffAnalysisContext,
-): ComparableReactGraph | undefined {
-  return tryAnalyzeComparableReactGraph(context, context.repositoryRoot)
-}
-
-function loadGitTreeGraph(
-  context: ReactDiffAnalysisContext,
-  tree: string,
-): ComparableReactGraph | undefined {
-  const snapshotRoot = materializeGitTreeSnapshot(context.repositoryRoot, tree)
+  comparison: GitDiffComparison,
+): [ComparableReactGraph | undefined, ComparableReactGraph | undefined] {
+  const snapshotsToCleanup: string[] = []
 
   try {
-    return tryAnalyzeComparableReactGraph(context, snapshotRoot)
+    let beforeRoot: string
+    let afterRoot: string
+
+    if (comparison.afterTree === undefined) {
+      beforeRoot = materializeGitTreeSnapshot(
+        context.repositoryRoot,
+        comparison.beforeTree,
+      )
+      snapshotsToCleanup.push(beforeRoot)
+      afterRoot = context.repositoryRoot
+    } else {
+      ;[beforeRoot, afterRoot] = materializeTwoGitTreeSnapshots(
+        context.repositoryRoot,
+        comparison.beforeTree,
+        comparison.afterTree,
+      )
+      snapshotsToCleanup.push(beforeRoot, afterRoot)
+    }
+
+    const beforeGraph = tryAnalyzeComparableReactGraph(context, beforeRoot)
+    const afterGraph = tryAnalyzeComparableReactGraph(context, afterRoot)
+
+    return [beforeGraph, afterGraph]
   } finally {
-    fs.rmSync(snapshotRoot, { recursive: true, force: true })
+    for (const dir of snapshotsToCleanup) {
+      fs.rm(dir, { recursive: true, force: true }, () => {})
+    }
   }
 }
 
@@ -989,46 +1003,124 @@ function materializeGitTreeSnapshot(
   const snapshotRoot = fs.mkdtempSync(
     path.join(os.tmpdir(), 'foresthouse-react-diff-'),
   )
-  const trackedFiles = runGit(repositoryRoot, [
-    'ls-tree',
-    '-r',
-    '-z',
-    '--name-only',
-    tree,
-  ])
-    .split('\u0000')
-    .filter((filePath) => filePath.length > 0)
 
-  trackedFiles.forEach((filePath) => {
-    ensureSnapshotDirectory(snapshotRoot, filePath)
-  })
-
-  trackedFiles.forEach((filePath) => {
-    const fileContent = runGit(
-      repositoryRoot,
-      ['cat-file', '-p', `${tree}:${filePath}`],
-      {
-        trim: false,
-      },
-    )
-    const absolutePath = path.join(snapshotRoot, ...filePath.split('/'))
-
-    fs.writeFileSync(absolutePath, fileContent)
-  })
+  execSync(
+    `git -C ${JSON.stringify(repositoryRoot)} archive --format=tar ${tree} | tar -x -C ${JSON.stringify(snapshotRoot)}`,
+    {
+      maxBuffer: GIT_EXEC_MAX_BUFFER,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  )
 
   return snapshotRoot
 }
 
-function ensureSnapshotDirectory(snapshotRoot: string, filePath: string): void {
-  const parentDirectory = path.dirname(filePath)
+function materializeTwoGitTreeSnapshots(
+  repositoryRoot: string,
+  beforeTree: string,
+  afterTree: string,
+): [string, string] {
+  // 1. Materialize the after tree fully
+  const afterSnap = materializeGitTreeSnapshot(repositoryRoot, afterTree)
 
-  if (parentDirectory === '.') {
-    return
+  // 2. Try CoW clone + diff overlay for the before tree
+  try {
+    const beforeSnap = cloneSnapshotWithOverlay(
+      repositoryRoot,
+      afterSnap,
+      beforeTree,
+      afterTree,
+    )
+    return [beforeSnap, afterSnap]
+  } catch {
+    // CoW not supported — fall back to full materialization
+    const beforeSnap = materializeGitTreeSnapshot(repositoryRoot, beforeTree)
+    return [beforeSnap, afterSnap]
+  }
+}
+
+function cloneSnapshotWithOverlay(
+  repositoryRoot: string,
+  sourceSnap: string,
+  targetTree: string,
+  sourceTree: string,
+): string {
+  const targetSnap = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'foresthouse-react-diff-'),
+  )
+  fs.rmSync(targetSnap, { recursive: true })
+
+  // CoW clone (APFS on macOS, reflink on Btrfs/XFS)
+  if (process.platform === 'darwin') {
+    execFileSync('cp', ['-cR', sourceSnap, targetSnap], { stdio: 'ignore' })
+  } else {
+    execFileSync('cp', ['-a', '--reflink=auto', sourceSnap, targetSnap], {
+      stdio: 'ignore',
+    })
   }
 
-  fs.mkdirSync(path.join(snapshotRoot, ...parentDirectory.split('/')), {
-    recursive: true,
-  })
+  // Find changed files between the two trees
+  const diffOutput = execFileSync(
+    'git',
+    [
+      '-C',
+      repositoryRoot,
+      'diff',
+      '--name-status',
+      '--no-renames',
+      '-z',
+      targetTree,
+      sourceTree,
+    ],
+    { maxBuffer: GIT_EXEC_MAX_BUFFER, encoding: 'utf8' },
+  )
+
+  if (diffOutput.length === 0) {
+    return targetSnap
+  }
+
+  // Parse null-separated output: status\0path\0status\0path\0...
+  const parts = diffOutput.split('\0')
+  const filesToDelete: string[] = []
+  const filesToRestore: string[] = []
+
+  for (let i = 0; i + 1 < parts.length; i += 2) {
+    const status = parts[i]
+    const file = parts[i + 1]
+    if (file === undefined) break
+
+    if (status === 'A') {
+      // Added in source (after) — doesn't exist in target (before)
+      filesToDelete.push(file)
+    } else if (status === 'D' || status === 'M') {
+      // Deleted or modified in source — restore target (before) version
+      filesToRestore.push(file)
+    }
+  }
+
+  for (const file of filesToDelete) {
+    fs.rmSync(path.join(targetSnap, file), { force: true })
+  }
+
+  if (filesToRestore.length > 0) {
+    // Extract only the changed files from the before tree
+    const archive = execFileSync(
+      'git',
+      [
+        '-C',
+        repositoryRoot,
+        'archive',
+        '--format=tar',
+        targetTree,
+        '--',
+        ...filesToRestore,
+      ],
+      { maxBuffer: GIT_EXEC_MAX_BUFFER },
+    )
+    execFileSync('tar', ['-x', '-C', targetSnap], { input: archive })
+  }
+
+  return targetSnap
 }
 
 function runGit(
