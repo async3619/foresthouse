@@ -1,4 +1,4 @@
-import { execFileSync, execSync, spawn } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -182,7 +182,7 @@ function loadBothGraphs(
     return [beforeGraph, afterGraph]
   } finally {
     for (const dir of snapshotsToCleanup) {
-      spawn('rm', ['-rf', dir], { stdio: 'ignore', detached: true }).unref()
+      fs.rm(dir, { recursive: true, force: true }, () => {})
     }
   }
 }
