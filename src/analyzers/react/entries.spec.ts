@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import { parseSync } from 'oxc-parser'
+import { describe, expect, it } from 'vitest'
 
 import { collectEntryUsages, createReactUsageLocation } from './entries.js'
 
@@ -13,11 +13,9 @@ describe('createReactUsageLocation', () => {
   })
 
   it('resolves later lines and columns correctly', () => {
-    const sourceText = [
-      'const one = 1;',
-      'const two = 2;',
-      'return two;',
-    ].join('\n')
+    const sourceText = ['const one = 1;', 'const two = 2;', 'return two;'].join(
+      '\n',
+    )
 
     expect(
       createReactUsageLocation(

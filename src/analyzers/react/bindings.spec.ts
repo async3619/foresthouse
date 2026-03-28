@@ -1,9 +1,8 @@
-import { describe, expect, it } from 'vitest'
 import { parseSync } from 'oxc-parser'
-
-import type { PendingReactUsageNode } from './file.js'
+import { describe, expect, it } from 'vitest'
 import type { ImportBinding } from './bindings.js'
 import { collectImportsAndExports } from './bindings.js'
+import type { PendingReactUsageNode } from './file.js'
 
 function createMockSymbol(
   name: string,
@@ -91,9 +90,7 @@ describe('collectImportsAndExports', () => {
     })
 
     it('skips type-only imports', () => {
-      const { importsByLocalName } = collect(
-        'import type { Foo } from "./foo"',
-      )
+      const { importsByLocalName } = collect('import type { Foo } from "./foo"')
       expect(importsByLocalName.size).toBe(0)
     })
 
@@ -127,7 +124,7 @@ describe('collectImportsAndExports', () => {
       })
 
       expect(exportsByName.get('App')).toBe('test.tsx#component:App')
-      expect(symbols.get('App')!.exportNames.has('App')).toBe(true)
+      expect(symbols.get('App')?.exportNames.has('App')).toBe(true)
     })
 
     it('collects exported variable declarations', () => {

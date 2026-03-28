@@ -66,20 +66,20 @@ describe('graphToSerializableTree', () => {
     const graph = createGraph()
     const tree = graphToSerializableTree(graph) as Record<string, unknown>
     const deps = tree.dependencies as Record<string, unknown>[]
-    const sourceDep = deps.find((d) => d.kind === 'source')!
-
-    expect(sourceDep.target).toBe('src/utils.ts')
-    expect(sourceDep.node).toBeDefined()
+    const sourceDep = deps.find((d) => d.kind === 'source')
+    expect(sourceDep).toBeDefined()
+    expect(sourceDep?.target).toBe('src/utils.ts')
+    expect(sourceDep?.node).toBeDefined()
   })
 
   it('serializes external dependencies without nested nodes', () => {
     const graph = createGraph()
     const tree = graphToSerializableTree(graph) as Record<string, unknown>
     const deps = tree.dependencies as Record<string, unknown>[]
-    const extDep = deps.find((d) => d.kind === 'external')!
-
-    expect(extDep.target).toBe('react')
-    expect(extDep.node).toBeUndefined()
+    const extDep = deps.find((d) => d.kind === 'external')
+    expect(extDep).toBeDefined()
+    expect(extDep?.target).toBe('react')
+    expect(extDep?.node).toBeUndefined()
   })
 
   it('handles circular references', () => {
@@ -250,10 +250,7 @@ describe('graphToSerializableTree', () => {
           },
         ],
         ['/project/used.ts', { id: '/project/used.ts', dependencies: [] }],
-        [
-          '/project/unused.ts',
-          { id: '/project/unused.ts', dependencies: [] },
-        ],
+        ['/project/unused.ts', { id: '/project/unused.ts', dependencies: [] }],
       ]),
     }
 

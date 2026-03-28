@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import { parseSync } from 'oxc-parser'
+import { describe, expect, it } from 'vitest'
 
 import type { PendingReactUsageNode } from './file.js'
 import { analyzeSymbolUsages } from './usage.js'

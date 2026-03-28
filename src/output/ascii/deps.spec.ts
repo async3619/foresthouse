@@ -109,9 +109,7 @@ describe('printPackageDependencyTree', () => {
           {
             packageDir: '/repo/a',
             packageName: 'a',
-            dependencies: [
-              { kind: 'workspace', name: 'b', target: '/repo/b' },
-            ],
+            dependencies: [{ kind: 'workspace', name: 'b', target: '/repo/b' }],
           },
         ],
         [
@@ -119,9 +117,7 @@ describe('printPackageDependencyTree', () => {
           {
             packageDir: '/repo/b',
             packageName: 'b',
-            dependencies: [
-              { kind: 'workspace', name: 'a', target: '/repo/a' },
-            ],
+            dependencies: [{ kind: 'workspace', name: 'a', target: '/repo/a' }],
           },
         ],
       ]),

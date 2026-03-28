@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import { parseSync } from 'oxc-parser'
+import { describe, expect, it } from 'vitest'
 
 import type { PendingReactUsageNode } from './file.js'
 import {
@@ -41,34 +41,34 @@ describe('collectTopLevelReactSymbols', () => {
     const symbols = collectSymbols('function App() { return <div /> }')
     const app = symbols.get('App')
     expect(app).toBeDefined()
-    expect(app!.kind).toBe('component')
-    expect(app!.id).toBe('/test.tsx#component:App')
+    expect(app?.kind).toBe('component')
+    expect(app?.id).toBe('/test.tsx#component:App')
   })
 
   it('detects function declaration hook', () => {
     const symbols = collectSymbols('function useData() { return null }')
     const hook = symbols.get('useData')
     expect(hook).toBeDefined()
-    expect(hook!.kind).toBe('hook')
+    expect(hook?.kind).toBe('hook')
   })
 
   it('detects arrow function component returning JSX', () => {
     const symbols = collectSymbols('const App = () => <div />')
     const app = symbols.get('App')
     expect(app).toBeDefined()
-    expect(app!.kind).toBe('component')
+    expect(app?.kind).toBe('component')
   })
 
   it('detects arrow function hook', () => {
     const symbols = collectSymbols('const useData = () => { return null }')
     expect(symbols.get('useData')).toBeDefined()
-    expect(symbols.get('useData')!.kind).toBe('hook')
+    expect(symbols.get('useData')?.kind).toBe('hook')
   })
 
   it('detects styled-component variable', () => {
     const symbols = collectSymbols('const Button = styled.button``')
     expect(symbols.get('Button')).toBeDefined()
-    expect(symbols.get('Button')!.kind).toBe('component')
+    expect(symbols.get('Button')?.kind).toBe('component')
   })
 
   it('ignores non-react functions', () => {
@@ -101,23 +101,22 @@ describe('collectTopLevelReactSymbols', () => {
       'export default function App() { return <div /> }',
     )
     expect(symbols.get('App')).toBeDefined()
-    expect(symbols.get('App')!.kind).toBe('component')
+    expect(symbols.get('App')?.kind).toBe('component')
   })
 
   it('does not classify anonymous default arrow function as component', () => {
-    const symbols = collectSymbols(
-      'export default () => { return <div /> }',
-    )
+    const symbols = collectSymbols('export default () => { return <div /> }')
     expect(symbols.get('default')).toBeUndefined()
   })
 
   it('initializes pending symbol with empty sets', () => {
     const symbols = collectSymbols('function useData() {}')
-    const hook = symbols.get('useData')!
-    expect(hook.exportNames.size).toBe(0)
-    expect(hook.componentReferences.size).toBe(0)
-    expect(hook.hookReferences.size).toBe(0)
-    expect(hook.builtinReferences.size).toBe(0)
+    const hook = symbols.get('useData')
+    expect(hook).toBeDefined()
+    expect(hook?.exportNames.size).toBe(0)
+    expect(hook?.componentReferences.size).toBe(0)
+    expect(hook?.hookReferences.size).toBe(0)
+    expect(hook?.builtinReferences.size).toBe(0)
   })
 
   it('ignores unrelated statement types', () => {
@@ -132,7 +131,7 @@ describe('collectTopLevelDynamicComponentCandidates', () => {
       'const LazyComp = lazy(() => import("./Comp"))',
     )
     expect(dynamicCandidates.get('LazyComp')).toBeDefined()
-    expect(dynamicCandidates.get('LazyComp')!.kind).toBe('component')
+    expect(dynamicCandidates.get('LazyComp')?.kind).toBe('component')
   })
 
   it('ignores names already in symbolsByName', () => {
@@ -148,7 +147,9 @@ describe('collectTopLevelDynamicComponentCandidates', () => {
       collectTopLevelReactSymbols(statement, '/test.tsx', symbolsByName)
     })
 
-    const appSymbol = symbolsByName.get('App')!
+    const appSymbol = symbolsByName.get('App')
+    expect(appSymbol).toBeDefined()
+    if (appSymbol === undefined) return
     symbolsByName.set('App2', appSymbol)
 
     program.body.forEach((statement) => {

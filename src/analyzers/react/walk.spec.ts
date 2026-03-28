@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import { parseSync } from 'oxc-parser'
+import { describe, expect, it } from 'vitest'
 
 import {
   classifyReactSymbol,
@@ -81,7 +81,9 @@ describe('react walk helpers', () => {
       expect(FUNCTION_NODE_TYPES.has('FunctionExpression')).toBe(true)
       expect(FUNCTION_NODE_TYPES.has('ArrowFunctionExpression')).toBe(true)
       expect(FUNCTION_NODE_TYPES.has('TSDeclareFunction')).toBe(true)
-      expect(FUNCTION_NODE_TYPES.has('TSEmptyBodyFunctionExpression')).toBe(true)
+      expect(FUNCTION_NODE_TYPES.has('TSEmptyBodyFunctionExpression')).toBe(
+        true,
+      )
     })
   })
 
@@ -215,23 +217,19 @@ describe('react walk helpers', () => {
 
   describe('classifyReactSymbol', () => {
     it('classifies hook from arrow function', () => {
-      const stmt = parseStatement(
-        'const useData = () => { return null }',
-      )
+      const stmt = parseStatement('const useData = () => { return null }')
       if (
         stmt.type === 'VariableDeclaration' &&
         stmt.declarations[0].init !== null
       ) {
-        expect(classifyReactSymbol('useData', stmt.declarations[0].init as never)).toBe(
-          'hook',
-        )
+        expect(
+          classifyReactSymbol('useData', stmt.declarations[0].init as never),
+        ).toBe('hook')
       }
     })
 
     it('classifies component from function returning JSX', () => {
-      const stmt = parseStatement(
-        'function App() { return <div /> }',
-      )
+      const stmt = parseStatement('function App() { return <div /> }')
       if (stmt.type === 'FunctionDeclaration') {
         expect(classifyReactSymbol('App', stmt as never)).toBe('component')
       }
@@ -250,18 +248,14 @@ describe('react walk helpers', () => {
     })
 
     it('returns undefined for non-react function', () => {
-      const stmt = parseStatement(
-        'function helper() { return 42 }',
-      )
+      const stmt = parseStatement('function helper() { return 42 }')
       if (stmt.type === 'FunctionDeclaration') {
         expect(classifyReactSymbol('helper', stmt as never)).toBeUndefined()
       }
     })
 
     it('returns undefined for component name with non-JSX return', () => {
-      const stmt = parseStatement(
-        'function App() { return 42 }',
-      )
+      const stmt = parseStatement('function App() { return 42 }')
       if (stmt.type === 'FunctionDeclaration') {
         expect(classifyReactSymbol('App', stmt as never)).toBeUndefined()
       }
@@ -297,10 +291,7 @@ describe('react walk helpers', () => {
         'function App() { return <div /> }',
       )
       const funcDecl = program.body[0]
-      if (
-        funcDecl.type !== 'FunctionDeclaration' ||
-        funcDecl.body === null
-      ) {
+      if (funcDecl.type !== 'FunctionDeclaration' || funcDecl.body === null) {
         throw new Error('unexpected')
       }
 
@@ -321,10 +312,7 @@ describe('react walk helpers', () => {
         'function outer() { const inner = () => { return <span /> }; return <div /> }',
       )
       const funcDecl = program.body[0]
-      if (
-        funcDecl.type !== 'FunctionDeclaration' ||
-        funcDecl.body === null
-      ) {
+      if (funcDecl.type !== 'FunctionDeclaration' || funcDecl.body === null) {
         throw new Error('unexpected')
       }
 
@@ -348,7 +336,8 @@ describe('react walk helpers', () => {
       const stmt = program.body[0]
       if (stmt.type !== 'ExpressionStatement') throw new Error('unexpected')
       const arrow = stmt.expression
-      if (arrow.type !== 'ArrowFunctionExpression') throw new Error('unexpected')
+      if (arrow.type !== 'ArrowFunctionExpression')
+        throw new Error('unexpected')
 
       const jsxCount: string[] = []
       walkReactUsageTree(arrow.body as never, (node) => {

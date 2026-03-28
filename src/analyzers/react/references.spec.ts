@@ -12,9 +12,7 @@ import {
   resolveReactReference,
 } from './references.js'
 
-function createFileAnalysis(
-  overrides?: Partial<FileAnalysis>,
-): FileAnalysis {
+function createFileAnalysis(overrides?: Partial<FileAnalysis>): FileAnalysis {
   return {
     filePath: '/test.tsx',
     importsByLocalName: new Map(),
@@ -89,23 +87,24 @@ describe('resolveReactReference', () => {
       allSymbolsByName: new Map([['App', symbol]]),
     })
 
-    const result = resolveReactReference(
-      fileAnalysis,
-      new Map(),
-      'App',
-      'hook',
-    )
+    const result = resolveReactReference(fileAnalysis, new Map(), 'App', 'hook')
     expect(result).toBeUndefined()
   })
 
   it('resolves imported symbol through source file analysis', () => {
-    const targetSymbol = createPendingSymbol('Button', 'component', '/src/button.tsx')
+    const targetSymbol = createPendingSymbol(
+      'Button',
+      'component',
+      '/src/button.tsx',
+    )
     targetSymbol.exportNames.add('Button')
 
     const sourceAnalysis = createFileAnalysis({
       filePath: '/src/button.tsx',
       exportsByName: new Map([['Button', '/src/button.tsx#component:Button']]),
-      allSymbolsById: new Map([['/src/button.tsx#component:Button', targetSymbol]]),
+      allSymbolsById: new Map([
+        ['/src/button.tsx#component:Button', targetSymbol],
+      ]),
     })
 
     const fileAnalysis = createFileAnalysis({
@@ -452,8 +451,8 @@ describe('addBuiltinNodes', () => {
     addBuiltinNodes(fileAnalyses, nodes)
 
     expect(nodes.has('builtin:div')).toBe(true)
-    expect(nodes.get('builtin:div')!.kind).toBe('builtin')
-    expect(nodes.get('builtin:div')!.filePath).toBe('html')
+    expect(nodes.get('builtin:div')?.kind).toBe('builtin')
+    expect(nodes.get('builtin:div')?.filePath).toBe('html')
   })
 
   it('creates nodes from symbol builtin references', () => {
