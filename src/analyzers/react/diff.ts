@@ -150,7 +150,6 @@ function toAnalyzeOptions(options: ReactCliOptions): AnalyzeOptions {
   }
 }
 
-
 function loadBothGraphs(
   context: ReactDiffAnalysisContext,
   comparison: GitDiffComparison,
@@ -1106,7 +1105,15 @@ function cloneSnapshotWithOverlay(
     // Extract only the changed files from the before tree
     const archive = execFileSync(
       'git',
-      ['-C', repositoryRoot, 'archive', '--format=tar', targetTree, '--', ...filesToRestore],
+      [
+        '-C',
+        repositoryRoot,
+        'archive',
+        '--format=tar',
+        targetTree,
+        '--',
+        ...filesToRestore,
+      ],
       { maxBuffer: GIT_EXEC_MAX_BUFFER },
     )
     execFileSync('tar', ['-x', '-C', targetSnap], { input: archive })
