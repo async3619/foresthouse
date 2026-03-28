@@ -117,6 +117,15 @@ function getImportBinding(
     }
   }
 
+  if (specifier.type === 'ImportNamespaceSpecifier') {
+    return {
+      localName: specifier.local.name,
+      importedName: '*',
+      sourceSpecifier,
+      ...(sourcePath === undefined ? {} : { sourcePath }),
+    }
+  }
+
   return undefined
 }
 

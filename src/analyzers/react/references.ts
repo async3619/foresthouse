@@ -15,6 +15,17 @@ export function resolveReactReference(
     return getBuiltinNodeId(name)
   }
 
+  const dotIndex = name.indexOf('.')
+  if (dotIndex !== -1) {
+    return resolveNamespaceMemberReference(
+      fileAnalysis,
+      fileAnalyses,
+      name.slice(0, dotIndex),
+      name.slice(dotIndex + 1),
+      kind,
+    )
+  }
+
   const localSymbol = fileAnalysis.allSymbolsByName.get(name)
   if (localSymbol !== undefined && localSymbol.kind === kind) {
     return localSymbol.id
@@ -48,6 +59,36 @@ export function resolveReactReference(
   }
 
   return targetId
+}
+
+function resolveNamespaceMemberReference(
+  fileAnalysis: FileAnalysis,
+  fileAnalyses: ReadonlyMap<string, FileAnalysis>,
+  namespaceName: string,
+  propertyName: string,
+  kind: ReactSymbolKind,
+): string | undefined {
+  const importBinding = fileAnalysis.importsByLocalName.get(namespaceName)
+  if (
+    importBinding === undefined ||
+    importBinding.importedName !== '*' ||
+    importBinding.sourcePath === undefined
+  ) {
+    return undefined
+  }
+
+  const sourceFileAnalysis = fileAnalyses.get(importBinding.sourcePath)
+  if (sourceFileAnalysis === undefined) {
+    return undefined
+  }
+
+  return resolveExportedSymbol(
+    sourceFileAnalysis,
+    propertyName,
+    kind,
+    fileAnalyses,
+    new Set<string>(),
+  )
 }
 
 function resolveExportedSymbol(

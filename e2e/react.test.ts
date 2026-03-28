@@ -510,6 +510,77 @@ describe('analyzeReactUsage', () => {
     })
   })
 
+  it('resolves builtin elements from namespace-imported styled-components', () => {
+    const graph = analyzeReactUsage('src/namespace-styled-entry.tsx', {
+      cwd: fixtureDirectory,
+      includeBuiltins: true,
+    })
+
+    const output = printReactUsageTree(graph, {
+      color: false,
+    })
+    const jsonTree = graphToSerializableReactTree(graph)
+
+    expect(output).toContain(
+      '<FeaturePage /> [component] (src/namespace-styled-entry.tsx)',
+    )
+    expect(output).toContain(
+      '<Section /> as Styled.Section [component] (src/components/FeatureSection.styled.tsx)',
+    )
+    expect(output).toContain(
+      '<Container /> as Styled.Container [component] (src/components/FeatureSection.styled.tsx)',
+    )
+    expect(output).toContain('<section> [builtin] (html)')
+    expect(output).toContain('<div> [builtin] (html)')
+
+    expect(jsonTree).toMatchObject({
+      entries: [
+        expect.objectContaining({
+          referenceName: 'FeaturePage',
+          node: expect.objectContaining({
+            name: 'FeaturePage',
+            symbolKind: 'component',
+          }),
+        }),
+      ],
+      roots: [
+        expect.objectContaining({
+          name: 'FeaturePage',
+          usages: expect.arrayContaining([
+            expect.objectContaining({
+              node: expect.objectContaining({
+                name: 'Section',
+                symbolKind: 'component',
+                usages: expect.arrayContaining([
+                  expect.objectContaining({
+                    node: expect.objectContaining({
+                      name: 'section',
+                      symbolKind: 'builtin',
+                    }),
+                  }),
+                ]),
+              }),
+            }),
+            expect.objectContaining({
+              node: expect.objectContaining({
+                name: 'Container',
+                symbolKind: 'component',
+                usages: expect.arrayContaining([
+                  expect.objectContaining({
+                    node: expect.objectContaining({
+                      name: 'div',
+                      symbolKind: 'builtin',
+                    }),
+                  }),
+                ]),
+              }),
+            }),
+          ]),
+        }),
+      ],
+    })
+  })
+
   it('prints multiple React entry locations when the entry file renders more than one root', () => {
     const graph = analyzeReactUsage('src/multi-entry.tsx', {
       cwd: fixtureDirectory,

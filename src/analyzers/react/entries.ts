@@ -9,6 +9,7 @@ import {
   getComponentReferenceName,
   getCreateElementComponentReferenceName,
   getHookReferenceName,
+  getMemberExpressionComponentReferenceName,
   isNode,
 } from './walk.js'
 
@@ -73,7 +74,9 @@ function collectNodeEntryUsages(
   let nextHasComponentAncestor = hasComponentAncestor
 
   if (node.type === 'JSXElement') {
-    const referenceName = getComponentReferenceName(node)
+    const referenceName =
+      getComponentReferenceName(node) ??
+      getMemberExpressionComponentReferenceName(node)
     if (referenceName !== undefined) {
       if (!hasComponentAncestor) {
         addPendingReactUsageEntry(

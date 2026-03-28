@@ -4,6 +4,7 @@ import {
   getComponentReferenceName,
   getCreateElementComponentReferenceName,
   getHookReferenceName,
+  getMemberExpressionComponentReferenceName,
   getStyledBuiltinReferenceName,
   getStyledComponentReferenceName,
   walkReactUsageTree,
@@ -18,6 +19,11 @@ export function analyzeSymbolUsages(
       const name = getComponentReferenceName(node)
       if (name !== undefined) {
         symbol.componentReferences.add(name)
+      } else {
+        const memberName = getMemberExpressionComponentReferenceName(node)
+        if (memberName !== undefined) {
+          symbol.componentReferences.add(memberName)
+        }
       }
 
       if (includeBuiltins) {
