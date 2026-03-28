@@ -5,12 +5,17 @@ import {
 } from '../../analyzers/react/queries.js'
 import {
   colorizeMuted,
+  colorizePackageDiff,
   colorizeReactLabel,
   formatReactSymbolLabel,
   formatReactSymbolName,
   resolveColorSupport,
 } from '../../color.js'
 import type { PrintReactTreeOptions } from '../../types/print-react-tree-options.js'
+import type { ReactUsageDiffEdge } from '../../types/react-usage-diff-edge.js'
+import type { ReactUsageDiffEntry } from '../../types/react-usage-diff-entry.js'
+import type { ReactUsageDiffGraph } from '../../types/react-usage-diff-graph.js'
+import type { ReactUsageDiffNode } from '../../types/react-usage-diff-node.js'
 import type { ReactUsageEdge } from '../../types/react-usage-edge.js'
 import type { ReactUsageEntry } from '../../types/react-usage-entry.js'
 import type { ReactUsageGraph } from '../../types/react-usage-graph.js'
@@ -60,6 +65,45 @@ export function printReactUsageTree(
     })
 
     if (index < roots.length - 1) {
+      lines.push('')
+    }
+  })
+
+  return lines.join('\n')
+}
+
+export function printReactUsageDiffTree(
+  graph: ReactUsageDiffGraph,
+  options: PrintReactTreeOptions = {},
+): string {
+  const color = resolveColorSupport(options.color)
+
+  if (graph.entries.length > 0) {
+    return renderReactDiffEntries(graph.entries, color)
+  }
+
+  if (graph.roots.length === 0) {
+    return 'No React changes found.'
+  }
+
+  const lines: string[] = []
+
+  graph.roots.forEach((root, index) => {
+    lines.push(
+      formatDiffLine(root.change, formatReactDiffNodeLabel(root, color), color),
+    )
+    root.usages.forEach((usage, usageIndex) => {
+      lines.push(
+        ...renderDiffUsage(
+          usage,
+          color,
+          '',
+          usageIndex === root.usages.length - 1,
+        ),
+      )
+    })
+
+    if (index < graph.roots.length - 1) {
       lines.push('')
     }
   })
@@ -181,4 +225,220 @@ function formatReactEntryLabel(entry: ReactUsageEntry, cwd: string): string {
 
 function formatReactNodeFilePath(node: ReactUsageNode, cwd: string): string {
   return node.kind === 'builtin' ? 'html' : toDisplayPath(node.filePath, cwd)
+}
+
+function renderReactDiffEntries(
+  entries: readonly ReactUsageDiffEntry[],
+  color: boolean,
+): string {
+  const lines: string[] = []
+
+  entries.forEach((entry, index) => {
+    lines.push(
+      formatDiffLine(
+        resolveVisibleEntryChange(entry),
+        formatReactDiffEntryLabel(entry),
+        color,
+      ),
+    )
+    lines.push(
+      formatDiffLine(
+        entry.node.change,
+        formatReactDiffNodeLabel(
+          entry.node,
+          color,
+          entry.beforeReferenceName,
+          entry.afterReferenceName,
+        ),
+        color,
+      ),
+    )
+
+    entry.node.usages.forEach((usage, usageIndex) => {
+      lines.push(
+        ...renderDiffUsage(
+          usage,
+          color,
+          '',
+          usageIndex === entry.node.usages.length - 1,
+        ),
+      )
+    })
+
+    if (index < entries.length - 1) {
+      lines.push('')
+    }
+  })
+
+  return lines.join('\n')
+}
+
+function renderDiffUsage(
+  usage: ReactUsageDiffEdge,
+  color: boolean,
+  prefix: string,
+  isLast: boolean,
+): string[] {
+  const branch = `${prefix}${isLast ? '└─ ' : '├─ '}`
+  const line = `${branch}${formatDiffLine(
+    resolveVisibleEdgeChange(usage),
+    formatReactDiffNodeLabel(
+      usage.node,
+      color,
+      usage.beforeReferenceName,
+      usage.afterReferenceName,
+    ),
+    color,
+  )}`
+
+  if (usage.node.circular === true) {
+    return [`${line} (circular)`]
+  }
+
+  const childLines = [line]
+  const nextPrefix = `${prefix}${isLast ? '   ' : '│  '}`
+
+  usage.node.usages.forEach((childUsage, index) => {
+    childLines.push(
+      ...renderDiffUsage(
+        childUsage,
+        color,
+        nextPrefix,
+        index === usage.node.usages.length - 1,
+      ),
+    )
+  })
+
+  return childLines
+}
+
+function formatReactDiffEntryLabel(entry: ReactUsageDiffEntry): string {
+  const beforeLocation =
+    entry.beforeFilePath === undefined ||
+    entry.beforeLine === undefined ||
+    entry.beforeColumn === undefined
+      ? undefined
+      : `${entry.beforeFilePath}:${entry.beforeLine}:${entry.beforeColumn}`
+  const afterLocation =
+    entry.afterFilePath === undefined ||
+    entry.afterLine === undefined ||
+    entry.afterColumn === undefined
+      ? undefined
+      : `${entry.afterFilePath}:${entry.afterLine}:${entry.afterColumn}`
+
+  if (
+    entry.change === 'changed' &&
+    beforeLocation !== undefined &&
+    afterLocation !== undefined
+  ) {
+    return `${beforeLocation} -> ${afterLocation}`
+  }
+
+  return afterLocation ?? beforeLocation ?? entry.referenceName
+}
+
+function formatReactDiffNodeLabel(
+  node: ReactUsageDiffNode,
+  color: boolean,
+  beforeReferenceName?: string,
+  afterReferenceName?: string,
+): string {
+  const label = formatReactDiffSymbolLabel(
+    node.name,
+    node.symbolKind,
+    color,
+    beforeReferenceName,
+    afterReferenceName,
+  )
+
+  return `${label} (${node.filePath})`
+}
+
+function formatReactDiffSymbolLabel(
+  name: string,
+  kind: ReactUsageDiffNode['symbolKind'],
+  color: boolean,
+  beforeReferenceName?: string,
+  afterReferenceName?: string,
+): string {
+  const referenceNames = [beforeReferenceName, afterReferenceName].filter(
+    (referenceName): referenceName is string => referenceName !== undefined,
+  )
+  const hasMeaningfulAlias = referenceNames.some(
+    (referenceName) => referenceName !== name,
+  )
+
+  if (!hasMeaningfulAlias) {
+    return formatReactSymbolLabel(name, kind, color)
+  }
+
+  const aliasText = formatReactDiffAlias(
+    name,
+    beforeReferenceName,
+    afterReferenceName,
+  )
+
+  return `${colorizeReactLabel(formatReactSymbolName(name, kind), kind, color)} ${colorizeMuted(
+    aliasText,
+    color,
+  )} ${colorizeReactLabel(`[${kind}]`, kind, color)}`
+}
+
+function formatReactDiffAlias(
+  name: string,
+  beforeReferenceName?: string,
+  afterReferenceName?: string,
+): string {
+  if (
+    beforeReferenceName !== undefined &&
+    afterReferenceName !== undefined &&
+    beforeReferenceName !== afterReferenceName
+  ) {
+    return `as ${beforeReferenceName} -> ${afterReferenceName}`
+  }
+
+  const currentReferenceName = afterReferenceName ?? beforeReferenceName
+  if (currentReferenceName === undefined || currentReferenceName === name) {
+    return 'as self'
+  }
+
+  return `as ${currentReferenceName}`
+}
+
+function resolveVisibleEntryChange(
+  entry: ReactUsageDiffEntry,
+): 'added' | 'removed' | 'changed' | 'unchanged' {
+  return entry.change === 'unchanged' ? entry.node.change : entry.change
+}
+
+function resolveVisibleEdgeChange(
+  usage: ReactUsageDiffEdge,
+): 'added' | 'removed' | 'changed' | 'unchanged' {
+  return usage.change === 'unchanged' ? usage.node.change : usage.change
+}
+
+function formatDiffLine(
+  change: 'added' | 'removed' | 'changed' | 'unchanged',
+  text: string,
+  color: boolean,
+): string {
+  if (change === 'unchanged') {
+    return text
+  }
+
+  return colorizePackageDiff(`${toDiffMarker(change)} ${text}`, change, color)
+}
+
+function toDiffMarker(
+  change: 'added' | 'removed' | 'changed',
+): '+' | '-' | '~' {
+  if (change === 'added') {
+    return '+'
+  }
+
+  if (change === 'removed') {
+    return '-'
+  }
+
+  return '~'
 }

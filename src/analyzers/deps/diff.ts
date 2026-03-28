@@ -57,6 +57,7 @@ type ComparablePackageDependency =
 
 const PNPM_LOCKFILE = 'pnpm-lock.yaml'
 const PNPM_WORKSPACE_FILE = 'pnpm-workspace.yaml'
+const GIT_EXEC_MAX_BUFFER = 64 * 1024 * 1024
 
 export function analyzePackageDependencyDiff(
   directory: string,
@@ -928,6 +929,7 @@ function runGit(
 ): string {
   const output = execFileSync('git', ['-C', repositoryRoot, ...args], {
     encoding: 'utf8',
+    maxBuffer: GIT_EXEC_MAX_BUFFER,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 

@@ -29,6 +29,7 @@ bunx foresthouse --help
 - Honors the nearest `tsconfig.json` or `jsconfig.json`, including `baseUrl` and `paths`
 - Expands sibling workspace packages by default, including their own `tsconfig` alias rules
 - Analyzes React component and hook usage trees from explicit entry files or inferred Next.js app and pages routes
+- Shows React tree changes relative to a Git ref or range with `foresthouse react --diff`
 - Reads `package.json` manifests to show package-level dependency trees for single packages and monorepos
 - Shows dependency-tree changes relative to a Git ref or range with `foresthouse deps --diff`
 - Prints an ASCII tree by default, or JSON with `--json`
@@ -58,7 +59,7 @@ Options:
 ### Commands
 
 - `foresthouse import <entry-file>`: analyzes a JavaScript or TypeScript entry file and prints a dependency tree by following imports, re-exports, `require()`, and dynamic `import()`.
-- `foresthouse react [entry-file]`: analyzes React component, hook, and render relationships and prints a React usage tree. It also supports automatic Next.js entry discovery with `--nextjs`.
+- `foresthouse react [entry-file]`: analyzes React component, hook, and render relationships and prints a React usage tree. It also supports automatic Next.js entry discovery with `--nextjs`, plus Git-based tree diffs with `--diff`.
 - `foresthouse deps <directory>`: reads `package.json` manifests and workspace structure from a package directory and prints a package dependency tree. Use `--diff` to show only changes relative to a Git ref or range.
 
 ### Example
@@ -107,6 +108,7 @@ Usage:
   $ foresthouse react [entry-file] [options]
 
 Options:
+  --diff <git-ref-or-range>  Show only React tree changes relative to a Git revision or range.
   --cwd <path>     Working directory used for relative paths.
   --config <path>  Explicit tsconfig.json or jsconfig.json path.
   --nextjs         Infer Next.js page entries from app/ and pages/ when no entry is provided.
@@ -137,6 +139,7 @@ Common examples:
 - `foresthouse import src/main.ts`
 - `foresthouse import --entry src/main.ts --cwd test/fixtures/basic`
 - `foresthouse react src/App.tsx`
+- `foresthouse react src/App.tsx --diff origin/dev...HEAD`
 - `foresthouse react --nextjs --cwd .`
 - `foresthouse deps .`
 - `foresthouse deps ./packages/a`

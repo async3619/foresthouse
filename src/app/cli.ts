@@ -92,6 +92,10 @@ class CliMain {
     cli
       .command('react [entry-file]', 'Analyze React usage from an entry file.')
       .usage('react [entry-file] [options]')
+      .option(
+        '--diff <git-ref-or-range>',
+        'Show only React tree changes relative to a Git revision or range.',
+      )
       .option('--cwd <path>', 'Working directory used for relative paths.')
       .option(
         '--config <path>',
@@ -182,6 +186,7 @@ interface ParsedImportCliOptions extends ParsedBaseCliOptions {
 }
 
 interface ParsedReactCliOptions extends ParsedBaseCliOptions {
+  readonly diff?: string
   readonly filter?: string
   readonly nextjs?: boolean
   readonly builtin?: boolean
@@ -227,6 +232,7 @@ function normalizeReactCliOptions(
   return {
     command: 'react',
     entryFile: resolveReactEntryFile(entryFile, options.nextjs),
+    diff: options.diff,
     cwd: options.cwd,
     configPath: options.config,
     expandWorkspaces: options.workspaces !== false,

@@ -3,6 +3,10 @@ import {
   getReactUsageEntries,
   getReactUsageRoots,
 } from '../../analyzers/react/queries.js'
+import type { ReactUsageDiffEdge } from '../../types/react-usage-diff-edge.js'
+import type { ReactUsageDiffEntry } from '../../types/react-usage-diff-entry.js'
+import type { ReactUsageDiffGraph } from '../../types/react-usage-diff-graph.js'
+import type { ReactUsageDiffNode } from '../../types/react-usage-diff-node.js'
 import type { ReactUsageEntry } from '../../types/react-usage-entry.js'
 import type { ReactUsageFilter } from '../../types/react-usage-filter.js'
 import type { ReactUsageGraph } from '../../types/react-usage-graph.js'
@@ -58,6 +62,16 @@ export function graphToSerializableReactTree(
       serializeReactUsageEntry(entry, graph, filter),
     ),
     roots,
+  }
+}
+
+export function diffGraphToSerializableReactTree(
+  graph: ReactUsageDiffGraph,
+): object {
+  return {
+    kind: graph.kind,
+    entries: graph.entries.map((entry) => serializeReactDiffEntry(entry)),
+    roots: graph.roots.map((root) => serializeReactDiffNode(root)),
   }
 }
 
@@ -129,4 +143,70 @@ function formatReactNodeFilePath(
   cwd: string,
 ): string {
   return kind === 'builtin' ? 'html' : toDisplayPath(filePath, cwd)
+}
+
+function serializeReactDiffNode(node: ReactUsageDiffNode): object {
+  return {
+    id: node.id,
+    name: node.name,
+    symbolKind: node.symbolKind,
+    ...(node.circular === true ? { circular: true } : {}),
+    filePath: node.filePath,
+    change: node.change,
+    exportNames: node.exportNames,
+    ...(node.beforeExportNames === undefined
+      ? {}
+      : { beforeExportNames: node.beforeExportNames }),
+    ...(node.afterExportNames === undefined
+      ? {}
+      : { afterExportNames: node.afterExportNames }),
+    usages: node.usages.map((usage) => serializeReactDiffEdge(usage)),
+  }
+}
+
+function serializeReactDiffEdge(usage: ReactUsageDiffEdge): object {
+  return {
+    key: usage.key,
+    kind: usage.kind,
+    change: usage.change,
+    targetId: usage.targetId,
+    referenceName: usage.referenceName,
+    ...(usage.beforeReferenceName === undefined
+      ? {}
+      : { beforeReferenceName: usage.beforeReferenceName }),
+    ...(usage.afterReferenceName === undefined
+      ? {}
+      : { afterReferenceName: usage.afterReferenceName }),
+    node: serializeReactDiffNode(usage.node),
+  }
+}
+
+function serializeReactDiffEntry(entry: ReactUsageDiffEntry): object {
+  return {
+    key: entry.key,
+    change: entry.change,
+    targetId: entry.targetId,
+    referenceName: entry.referenceName,
+    ...(entry.beforeReferenceName === undefined
+      ? {}
+      : { beforeReferenceName: entry.beforeReferenceName }),
+    ...(entry.afterReferenceName === undefined
+      ? {}
+      : { afterReferenceName: entry.afterReferenceName }),
+    ...(entry.beforeFilePath === undefined
+      ? {}
+      : { beforeFilePath: entry.beforeFilePath }),
+    ...(entry.beforeLine === undefined ? {} : { beforeLine: entry.beforeLine }),
+    ...(entry.beforeColumn === undefined
+      ? {}
+      : { beforeColumn: entry.beforeColumn }),
+    ...(entry.afterFilePath === undefined
+      ? {}
+      : { afterFilePath: entry.afterFilePath }),
+    ...(entry.afterLine === undefined ? {} : { afterLine: entry.afterLine }),
+    ...(entry.afterColumn === undefined
+      ? {}
+      : { afterColumn: entry.afterColumn }),
+    node: serializeReactDiffNode(entry.node),
+  }
 }
