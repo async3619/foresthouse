@@ -60,21 +60,23 @@ describe('graphToSerializableReactTree', () => {
     expect(tree.kind).toBe('react-usage')
     const entries = tree.entries as Record<string, unknown>[]
     expect(entries).toHaveLength(1)
-    expect(entries[0].referenceName).toBe('App')
-    expect(entries[0].targetId).toBe('src/App.tsx#component:App')
+    const entry0 = entries[0] as Record<string, unknown>
+    expect(entry0.referenceName).toBe('App')
+    expect(entry0.targetId).toBe('src/App.tsx#component:App')
   })
 
   it('serializes nested usages in nodes', () => {
     const graph = createGraph()
     const tree = graphToSerializableReactTree(graph) as Record<string, unknown>
     const roots = tree.roots as Record<string, unknown>[]
-    const appNode = roots[0]
+    const appNode = roots[0] as Record<string, unknown>
 
     expect(appNode.name).toBe('App')
     expect(appNode.symbolKind).toBe('component')
     const usages = appNode.usages as Record<string, unknown>[]
     expect(usages).toHaveLength(1)
-    expect(usages[0].referenceName).toBe('useData')
+    const usage0 = usages[0] as Record<string, unknown>
+    expect(usage0.referenceName).toBe('useData')
   })
 
   it('handles circular references', () => {
@@ -108,10 +110,13 @@ describe('graphToSerializableReactTree', () => {
 
     const tree = graphToSerializableReactTree(graph) as Record<string, unknown>
     const roots = tree.roots as Record<string, unknown>[]
-    const usages = roots[0].usages as Record<string, unknown>[]
-    const nestedNode = usages[0].node as Record<string, unknown>
+    const root0 = roots[0] as Record<string, unknown>
+    const usages = root0.usages as Record<string, unknown>[]
+    const usage0 = usages[0] as Record<string, unknown>
+    const nestedNode = usage0.node as Record<string, unknown>
     const nestedUsages = nestedNode.usages as Record<string, unknown>[]
-    const circularNode = nestedUsages[0].node as Record<string, unknown>
+    const nestedUsage0 = nestedUsages[0] as Record<string, unknown>
+    const circularNode = nestedUsage0.node as Record<string, unknown>
 
     expect(circularNode.symbolKind).toBe('circular')
     expect(circularNode.usages).toEqual([])
@@ -127,7 +132,7 @@ describe('graphToSerializableReactTree', () => {
     expect(entries).toHaveLength(1)
 
     const roots = tree.roots as Record<string, unknown>[]
-    const appNode = roots[0]
+    const appNode = roots[0] as Record<string, unknown>
     const usages = appNode.usages as Record<string, unknown>[]
     expect(usages).toHaveLength(0)
   })
@@ -160,7 +165,8 @@ describe('graphToSerializableReactTree', () => {
 
     const tree = graphToSerializableReactTree(graph) as Record<string, unknown>
     const roots = tree.roots as Record<string, unknown>[]
-    const usages = roots[0].usages as Record<string, unknown>[]
+    const filterRoot = roots[0] as Record<string, unknown>
+    const usages = filterRoot.usages as Record<string, unknown>[]
     expect(usages).toHaveLength(0)
   })
 })
@@ -188,6 +194,7 @@ describe('diffGraphToSerializableReactTree', () => {
     expect(tree.kind).toBe('react-usage-diff')
     const roots = tree.roots as Record<string, unknown>[]
     expect(roots).toHaveLength(1)
-    expect(roots[0].change).toBe('added')
+    const diffRoot = roots[0] as Record<string, unknown>
+    expect(diffRoot.change).toBe('added')
   })
 })

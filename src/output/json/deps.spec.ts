@@ -36,9 +36,10 @@ describe('graphToSerializablePackageTree', () => {
 
     const deps = tree.dependencies as Record<string, unknown>[]
     expect(deps).toHaveLength(1)
-    expect(deps[0].kind).toBe('external')
-    expect(deps[0].name).toBe('react')
-    expect(deps[0].target).toBe('react@^18.0.0')
+    const dep0 = deps[0] as Record<string, unknown>
+    expect(dep0.kind).toBe('external')
+    expect(dep0.name).toBe('react')
+    expect(dep0.target).toBe('react@^18.0.0')
   })
 
   it('serializes workspace dependencies with nested nodes', () => {
@@ -76,9 +77,10 @@ describe('graphToSerializablePackageTree', () => {
       unknown
     >
     const deps = tree.dependencies as Record<string, unknown>[]
-    expect(deps[0].kind).toBe('workspace')
-    expect(deps[0].node).toBeDefined()
-    const node = deps[0].node as Record<string, unknown>
+    const wsDep = deps[0] as Record<string, unknown>
+    expect(wsDep.kind).toBe('workspace')
+    expect(wsDep.node).toBeDefined()
+    const node = wsDep.node as Record<string, unknown>
     expect(node.kind).toBe('workspace')
   })
 
@@ -115,9 +117,11 @@ describe('graphToSerializablePackageTree', () => {
       unknown
     >
     const deps = tree.dependencies as Record<string, unknown>[]
-    const bNode = deps[0].node as Record<string, unknown>
+    const firstDep = deps[0] as Record<string, unknown>
+    const bNode = firstDep.node as Record<string, unknown>
     const bDeps = bNode.dependencies as Record<string, unknown>[]
-    const circularNode = bDeps[0].node as Record<string, unknown>
+    const circularDep = bDeps[0] as Record<string, unknown>
+    const circularNode = circularDep.node as Record<string, unknown>
 
     expect(circularNode.kind).toBe('circular')
     expect(circularNode.dependencies).toEqual([])
@@ -177,7 +181,8 @@ describe('diffGraphToSerializablePackageTree', () => {
 
     const deps = tree.dependencies as Record<string, unknown>[]
     expect(deps).toHaveLength(1)
-    expect(deps[0].change).toBe('changed')
-    expect(deps[0].specifierChanged).toBe(true)
+    const diffDep = deps[0] as Record<string, unknown>
+    expect(diffDep.change).toBe('changed')
+    expect(diffDep.specifierChanged).toBe(true)
   })
 })

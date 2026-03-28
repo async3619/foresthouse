@@ -89,8 +89,9 @@ describe('analyzeReactFile', () => {
       includeNestedRenderEntries: true,
     })
     expect(result.entryUsages.length).toBeGreaterThan(0)
-    expect(result.entryUsages[0].referenceName).toBe('App')
-    expect(result.entryUsages[0].kind).toBe('component')
+    const firstEntry = result.entryUsages[0] as (typeof result.entryUsages)[0]
+    expect(firstEntry.referenceName).toBe('App')
+    expect(firstEntry.kind).toBe('component')
   })
 
   it('builds symbolsById from symbolsByName', () => {

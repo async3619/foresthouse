@@ -11,12 +11,14 @@ function createSymbolFromCode(
 ): PendingReactUsageNode {
   const { program } = parseSync('test.tsx', code)
   const stmt = program.body[0]
+  if (!stmt) throw new Error('No statement found')
 
   let analysisRoot: PendingReactUsageNode['analysisRoot']
   if (stmt.type === 'FunctionDeclaration' && stmt.body !== null) {
     analysisRoot = stmt.body
   } else if (
     stmt.type === 'VariableDeclaration' &&
+    stmt.declarations[0] &&
     stmt.declarations[0].init !== null
   ) {
     const init = stmt.declarations[0].init

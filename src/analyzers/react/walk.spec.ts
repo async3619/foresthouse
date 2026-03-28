@@ -22,13 +22,15 @@ import {
 function parseExpression(code: string) {
   const { program } = parseSync('test.tsx', code)
   const stmt = program.body[0]
-  if (stmt.type === 'ExpressionStatement') return stmt.expression
-  throw new Error(`Expected ExpressionStatement, got ${stmt.type}`)
+  if (stmt && stmt.type === 'ExpressionStatement') return stmt.expression
+  throw new Error(`Expected ExpressionStatement, got ${stmt?.type}`)
 }
 
 function parseStatement(code: string) {
   const { program } = parseSync('test.tsx', code)
-  return program.body[0]
+  const stmt = program.body[0]
+  if (!stmt) throw new Error('No statement found')
+  return stmt
 }
 
 function parseJSXElement(code: string) {
@@ -220,6 +222,7 @@ describe('react walk helpers', () => {
       const stmt = parseStatement('const useData = () => { return null }')
       if (
         stmt.type === 'VariableDeclaration' &&
+        stmt.declarations[0] &&
         stmt.declarations[0].init !== null
       ) {
         expect(
@@ -239,6 +242,7 @@ describe('react walk helpers', () => {
       const stmt = parseStatement('const Button = styled.button``')
       if (
         stmt.type === 'VariableDeclaration' &&
+        stmt.declarations[0] &&
         stmt.declarations[0].init !== null
       ) {
         expect(
@@ -291,7 +295,11 @@ describe('react walk helpers', () => {
         'function App() { return <div /> }',
       )
       const funcDecl = program.body[0]
-      if (funcDecl.type !== 'FunctionDeclaration' || funcDecl.body === null) {
+      if (
+        !funcDecl ||
+        funcDecl.type !== 'FunctionDeclaration' ||
+        funcDecl.body === null
+      ) {
         throw new Error('unexpected')
       }
 
@@ -312,7 +320,11 @@ describe('react walk helpers', () => {
         'function outer() { const inner = () => { return <span /> }; return <div /> }',
       )
       const funcDecl = program.body[0]
-      if (funcDecl.type !== 'FunctionDeclaration' || funcDecl.body === null) {
+      if (
+        !funcDecl ||
+        funcDecl.type !== 'FunctionDeclaration' ||
+        funcDecl.body === null
+      ) {
         throw new Error('unexpected')
       }
 
@@ -334,7 +346,8 @@ describe('react walk helpers', () => {
         '() => { const inner = () => { return <span /> }; return <div /> }',
       )
       const stmt = program.body[0]
-      if (stmt.type !== 'ExpressionStatement') throw new Error('unexpected')
+      if (!stmt || stmt.type !== 'ExpressionStatement')
+        throw new Error('unexpected')
       const arrow = stmt.expression
       if (arrow.type !== 'ArrowFunctionExpression')
         throw new Error('unexpected')

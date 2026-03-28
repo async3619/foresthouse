@@ -349,7 +349,7 @@ describe('addExternalHookNodes', () => {
     addExternalHookNodes(fileAnalyses, nodes)
 
     expect(nodes.size).toBe(1)
-    const node = [...nodes.values()][0]
+    const node = [...nodes.values()][0] as ReactUsageNode
     expect(node.kind).toBe('hook')
     expect(node.name).toBe('useQuery')
     expect(node.filePath).toBe('@tanstack/react-query')
@@ -376,7 +376,7 @@ describe('addExternalHookNodes', () => {
     const nodes = new Map<string, ReactUsageNode>()
     addExternalHookNodes(fileAnalyses, nodes)
 
-    const node = [...nodes.values()][0]
+    const node = [...nodes.values()][0] as ReactUsageNode
     expect(node.name).toBe('useCustomHook')
   })
 

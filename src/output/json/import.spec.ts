@@ -124,9 +124,11 @@ describe('graphToSerializableTree', () => {
 
     const tree = graphToSerializableTree(graph) as Record<string, unknown>
     const deps = tree.dependencies as Record<string, unknown>[]
-    const bNode = deps[0].node as Record<string, unknown>
+    const firstDep = deps[0] as Record<string, unknown>
+    const bNode = firstDep.node as Record<string, unknown>
     const bDeps = bNode.dependencies as Record<string, unknown>[]
-    const circularNode = bDeps[0].node as Record<string, unknown>
+    const circularDep = bDeps[0] as Record<string, unknown>
+    const circularNode = circularDep.node as Record<string, unknown>
 
     expect(circularNode.kind).toBe('circular')
     expect(circularNode.dependencies).toEqual([])
@@ -183,7 +185,8 @@ describe('graphToSerializableTree', () => {
 
     const tree = graphToSerializableTree(graph) as Record<string, unknown>
     const deps = tree.dependencies as Record<string, unknown>[]
-    const cDep = deps[1].node as Record<string, unknown>
+    const secondDep = deps[1] as Record<string, unknown>
+    const cDep = secondDep.node as Record<string, unknown>
 
     expect(cDep.kind).toBe('shared')
     expect(cDep.dependencies).toEqual([])
@@ -215,7 +218,8 @@ describe('graphToSerializableTree', () => {
 
     const tree = graphToSerializableTree(graph) as Record<string, unknown>
     const deps = tree.dependencies as Record<string, unknown>[]
-    const missingNode = deps[0].node as Record<string, unknown>
+    const missingDep = deps[0] as Record<string, unknown>
+    const missingNode = missingDep.node as Record<string, unknown>
 
     expect(missingNode.kind).toBe('missing')
   })
@@ -261,7 +265,8 @@ describe('graphToSerializableTree', () => {
     const deps = tree.dependencies as Record<string, unknown>[]
 
     expect(deps).toHaveLength(1)
-    expect(deps[0].target).toBe('used.ts')
+    const usedDep = deps[0] as Record<string, unknown>
+    expect(usedDep.target).toBe('used.ts')
   })
 
   it('serializes boundary dependencies', () => {
@@ -291,8 +296,9 @@ describe('graphToSerializableTree', () => {
 
     const tree = graphToSerializableTree(graph) as Record<string, unknown>
     const deps = tree.dependencies as Record<string, unknown>[]
-    expect(deps[0].kind).toBe('boundary')
-    expect(deps[0].boundary).toBe('project')
+    const boundaryDep = deps[0] as Record<string, unknown>
+    expect(boundaryDep.kind).toBe('boundary')
+    expect(boundaryDep.boundary).toBe('project')
   })
 
   it('serializes missing dependency targets directly', () => {
@@ -321,14 +327,16 @@ describe('graphToSerializableTree', () => {
 
     const tree = graphToSerializableTree(graph) as Record<string, unknown>
     const deps = tree.dependencies as Record<string, unknown>[]
-    expect(deps[0].target).toBe('./missing')
+    const missingTargetDep = deps[0] as Record<string, unknown>
+    expect(missingTargetDep.target).toBe('./missing')
   })
 
   it('includes referenceKind and isTypeOnly in serialized deps', () => {
     const graph = createGraph()
     const tree = graphToSerializableTree(graph) as Record<string, unknown>
     const deps = tree.dependencies as Record<string, unknown>[]
-    expect(deps[0].referenceKind).toBe('import')
-    expect(deps[0].isTypeOnly).toBe(false)
+    const refDep = deps[0] as Record<string, unknown>
+    expect(refDep.referenceKind).toBe('import')
+    expect(refDep.isTypeOnly).toBe(false)
   })
 })

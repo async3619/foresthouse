@@ -74,8 +74,9 @@ describe('collectEntryUsages', () => {
     const entries = collectEntryUsages(program, '/test.tsx', code, false)
 
     expect(entries).toHaveLength(1)
-    expect(entries[0].referenceName).toBe('App')
-    expect(entries[0].kind).toBe('component')
+    const entry0 = entries[0] as (typeof entries)[0]
+    expect(entry0.referenceName).toBe('App')
+    expect(entry0.kind).toBe('component')
   })
 
   it('finds hook calls at top level', () => {
@@ -84,8 +85,9 @@ describe('collectEntryUsages', () => {
     const entries = collectEntryUsages(program, '/test.tsx', code, false)
 
     expect(entries).toHaveLength(1)
-    expect(entries[0].referenceName).toBe('useEffect')
-    expect(entries[0].kind).toBe('hook')
+    const hookEntry = entries[0] as (typeof entries)[0]
+    expect(hookEntry.referenceName).toBe('useEffect')
+    expect(hookEntry.kind).toBe('hook')
   })
 
   it('includes builtin elements when includeBuiltins is true', () => {
@@ -138,9 +140,9 @@ describe('collectEntryUsages', () => {
 
     expect(entries.length).toBeGreaterThanOrEqual(2)
     for (let i = 1; i < entries.length; i++) {
-      expect(entries[i - 1].location.line).toBeLessThanOrEqual(
-        entries[i].location.line,
-      )
+      const prev = entries[i - 1] as (typeof entries)[0]
+      const curr = entries[i] as (typeof entries)[0]
+      expect(prev.location.line).toBeLessThanOrEqual(curr.location.line)
     }
   })
 
