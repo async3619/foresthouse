@@ -1087,6 +1087,7 @@ function cloneSnapshotWithOverlay(
   for (let i = 0; i + 1 < parts.length; i += 2) {
     const status = parts[i]
     const file = parts[i + 1]
+    if (file === undefined) break
 
     if (status === 'A') {
       // Added in source (after) — doesn't exist in target (before)
