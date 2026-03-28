@@ -120,6 +120,19 @@ Options:
   -h, --help       Display this message
 ```
 
+React diff mode compares React usage graphs rather than raw file text diffs. A single ref like `--diff HEAD~3` compares that tree to the current working tree, while ranges such as `HEAD~3..HEAD` or `origin/dev...HEAD` compare two committed Git trees.
+
+Example React diff output:
+
+```text
+~ apps/site/pages/index.tsx:21:45
+~ <Home /> [component] (apps/site/pages/index.tsx)
+└─ ~ <Hero /> [component] (apps/site/src/features/Main/Hero/Hero.tsx)
+   └─ + useForm() [hook] (react-hook-form)
+```
+
+In this example, the page entry itself is unchanged as source text, but its reachable React graph changed because `<Hero />` started calling `useForm()`.
+
 ### `foresthouse deps --help`
 
 Analyzes package-level dependency trees for both single-package projects and monorepos. Use `--diff` to show only dependency changes relative to a Git ref or range.
@@ -140,6 +153,7 @@ Common examples:
 - `foresthouse import --entry src/main.ts --cwd test/fixtures/basic`
 - `foresthouse react src/App.tsx`
 - `foresthouse react src/App.tsx --diff origin/dev...HEAD`
+- `foresthouse react pages/index.tsx --cwd . --diff HEAD~3..HEAD`
 - `foresthouse react --nextjs --cwd .`
 - `foresthouse deps .`
 - `foresthouse deps ./packages/a`
@@ -273,3 +287,4 @@ pnpm run check
 
 - Unit tests live next to source files as `src/**/*.spec.ts`.
 - End-to-end command tests live under `e2e/`.
+- Benchmarks live next to analyzers as `src/**/*.bench.ts` and run with `pnpm exec vitest bench --run --config vitest.bench.config.ts`.
