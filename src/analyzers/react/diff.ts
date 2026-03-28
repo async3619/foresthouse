@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -989,46 +989,29 @@ function materializeGitTreeSnapshot(
   const snapshotRoot = fs.mkdtempSync(
     path.join(os.tmpdir(), 'foresthouse-react-diff-'),
   )
-  const trackedFiles = runGit(repositoryRoot, [
-    'ls-tree',
-    '-r',
-    '-z',
-    '--name-only',
-    tree,
-  ])
-    .split('\u0000')
-    .filter((filePath) => filePath.length > 0)
 
-  trackedFiles.forEach((filePath) => {
-    ensureSnapshotDirectory(snapshotRoot, filePath)
-  })
-
-  trackedFiles.forEach((filePath) => {
-    const fileContent = runGit(
+  const result = spawnSync(
+    'sh',
+    [
+      '-c',
+      'git -C "$0" archive "$1" | tar -xf - -C "$2"',
       repositoryRoot,
-      ['cat-file', '-p', `${tree}:${filePath}`],
-      {
-        trim: false,
-      },
+      tree,
+      snapshotRoot,
+    ],
+    {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  )
+
+  if (result.error !== undefined || result.status !== 0) {
+    fs.rmSync(snapshotRoot, { recursive: true, force: true })
+    throw new Error(
+      `Failed to extract Git tree snapshot: ${result.stderr?.toString('utf8').trim() ?? result.error?.message ?? 'Unknown error'}`,
     )
-    const absolutePath = path.join(snapshotRoot, ...filePath.split('/'))
-
-    fs.writeFileSync(absolutePath, fileContent)
-  })
-
-  return snapshotRoot
-}
-
-function ensureSnapshotDirectory(snapshotRoot: string, filePath: string): void {
-  const parentDirectory = path.dirname(filePath)
-
-  if (parentDirectory === '.') {
-    return
   }
 
-  fs.mkdirSync(path.join(snapshotRoot, ...parentDirectory.split('/')), {
-    recursive: true,
-  })
+  return snapshotRoot
 }
 
 function runGit(
