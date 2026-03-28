@@ -124,6 +124,28 @@ export function getComponentReferenceName(
   return name !== undefined && isComponentName(name) ? name : undefined
 }
 
+export function getMemberExpressionComponentReferenceName(
+  node: JSXElement,
+): string | undefined {
+  const name = node.openingElement.name
+  if (name.type !== 'JSXMemberExpression') {
+    return undefined
+  }
+
+  if (name.object.type !== 'JSXIdentifier') {
+    return undefined
+  }
+
+  const objectName = name.object.name
+  const propertyName = name.property.name
+
+  if (isComponentName(objectName)) {
+    return `${objectName}.${propertyName}`
+  }
+
+  return undefined
+}
+
 export function getBuiltinReferenceName(node: JSXElement): string | undefined {
   const name = getJsxName(node.openingElement.name)
   return name !== undefined && isIntrinsicElementName(name) ? name : undefined
