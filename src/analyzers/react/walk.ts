@@ -64,7 +64,7 @@ function walkChild(
     return
   }
 
-  walkNode(value, visit, false)
+  walkNode(value, visit, allowNestedFunctions)
 }
 
 export function isNode(value: unknown): value is Node {
